@@ -30,13 +30,13 @@
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyCa_bwrAn7_QImUbnrqj0wSHrWqspFiNBE",
-            authDomain: "stock-mantain-d6427.firebaseapp.com",
-            projectId: "stock-mantain-d6427",
-            storageBucket: "stock-mantain-d6427.firebasestorage.app",
-            messagingSenderId: "150865127526",
-            appId: "1:150865127526:web:bb39866ca4acd9fbbb25a7",
-            measurementId: "G-1P1LMBLZ88"
+            apiKey: "AIzaSyCa_bwrAn7_QImUbnrqj0wSHrWqspFiNBE", // আপনার Firebase API Key দিন
+            authDomain: "stock-mantain-d6427.firebaseapp.com", // আপনার Auth Domain দিন
+            projectId: "stock-mantain-d6427", // আপনার Project ID দিন
+            storageBucket: "stock-mantain-d6427.firebasestorage.app", // আপনার Storage Bucket দিন
+            messagingSenderId: "150865127526", // আপনার Messaging Sender ID দিন
+            appId: "1:150865127526:web:bb39866ca4acd9fbbb25a7", // আপনার App ID দিন
+            measurementId: "G-1P1LMBLZ88" // আপনার Measurement ID দিন (ঐচ্ছিক)
         };
 
         const app = initializeApp(firebaseConfig);
@@ -49,11 +49,12 @@
         let currentSector = null;   
         let isAdmin = false;
         let cart = [];
-        let products = []; 
+        let allProducts = []; // Renamed from 'products' to 'allProducts' to avoid confusion
         let unsubscribeOrders = null; 
         let unsubscribeProducts = null;
+        let isAuthReady = false; 
 
-        // DOM Elements
+        // DOM Elements (Ensure all are correctly fetched)
         const loginForms = document.getElementById('loginForms');
         const userPasscodeLogin = document.getElementById('userPasscodeLogin');
         const adminEmailLogin = document.getElementById('adminEmailLogin');
@@ -71,6 +72,7 @@
         const adminEmailEntry = document.getElementById('adminEmailEntry');
         const adminPasswordEntry = document.getElementById('adminPasswordEntry');
         const adminLoginButton = document.getElementById('adminLoginButton');
+        const adminLoginLoadingIndicator = document.getElementById('adminLoginLoadingIndicator');
 
         const logoutButton = document.getElementById('logoutButton');
         const placeOrderButton = document.getElementById('placeOrderButton');
@@ -95,597 +97,33 @@
         const addProductButton = document.getElementById('addProductButton');
         const addProductLoadingIndicator = document.getElementById('addProductLoadingIndicator');
 
-        // --- Authentication and Initialization ---
-        async function initializeAppSession() {
-            onAuthStateChanged(auth, authStateChangedHandler); 
-
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                try {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } catch (error) {
-                    console.error("Error with custom token sign-in:", error);
-                    if (!auth.currentUser) { 
-                        await signInAnonymouslyIfNeeded();
-                    }
-                }
-            } else {
-                 await signInAnonymouslyIfNeeded();
-            }
-        }
-
-        async function signInAnonymouslyIfNeeded() {
-            if (!auth.currentUser) {
-                try {
-                    await signInAnonymously(auth);
-                    console.log("Signed in anonymously for initial session.");
-                } catch (error) {
-                     console.error("Error during anonymous sign-in:", error);
-                     showMessage('প্রাথমিক সেশনে সমস্যা হয়েছে। পৃষ্ঠা রিলোড করুন।', 'error', 0);
-                }
-            }
-        }
-        
-        async function authStateChangedHandler(user) {
-            generalLoadingIndicator.classList.remove('hidden');
-
-            if (user) {
-                currentUserId = user.uid;
-                console.log("Auth State: UID:", currentUserId, "Anonymous:", user.isAnonymous, "Email:", user.email);
-                isAdmin = false; 
-
-                if (!user.isAnonymous && user.email) { 
-                    const adminUserRef = doc(db, `artifacts/${appId}/public/data/admin_users`, user.uid);
-                    try {
-                        const adminDocSnap = await getDoc(adminUserRef);
-                        if (adminDocSnap.exists()) {
-                            isAdmin = true;
-                            console.log("Admin user confirmed:", user.uid);
-                            showAdminView();
-                        } else {
-                            console.log("User signed in with email but is not an admin:", user.uid);
-                            await signOut(auth); 
-                            showMessage('আপনি অ্যাডমিন হিসেবে অনুমোদিত নন।', 'error');
-                            generalLoadingIndicator.classList.add('hidden');
-                            return; 
-                        }
-                    } catch (error) {
-                        console.error("Error checking admin status:", error);
-                        await signOut(auth); 
-                        showMessage('অ্যাডমিন স্ট্যাটাস যাচাই করতে সমস্যা হয়েছে।', 'error');
-                        generalLoadingIndicator.classList.add('hidden');
-                        return;
-                    }
-                } else if (user.isAnonymous) { 
-                    if (currentPasscode && currentSector) { // Check both, as sector comes from DB
-                        showUserView();
-                    } else {
-                        showLoginView();
-                    }
-                } else { 
-                    showLoginView();
-                }
-                
-                await setupInitialProducts(); 
-                listenToProducts();
-
-            } else { 
-                console.log("User is signed out.");
-                currentUserId = null;
-                isAdmin = false;
-                currentPasscode = null; 
-                currentSector = null;
-                cart = []; 
-                renderCart();
-                showLoginView();
-                if (unsubscribeProducts) { unsubscribeProducts(); unsubscribeProducts = null; }
-                if (unsubscribeOrders) { unsubscribeOrders(); unsubscribeOrders = null; }
-            }
-            generalLoadingIndicator.classList.add('hidden');
-        }
-        
-        window.onload = initializeAppSession;
-
-        // --- View Management ---
-        function showLoginView() {
-            loginForms.classList.remove('hidden');
-            userSection.classList.add('hidden');
-            adminSection.classList.add('hidden');
-            logoutButton.classList.add('hidden');
-            currentViewSpan.textContent = 'লগইন করুন';
-            if (unsubscribeOrders) { 
-                unsubscribeOrders();
-                unsubscribeOrders = null;
-            }
-        }
-
-        function showUserView() {
-            loginForms.classList.add('hidden');
-            userSection.classList.remove('hidden');
-            adminSection.classList.add('hidden');
-            logoutButton.classList.remove('hidden');
-            currentViewSpan.textContent = `স্বাগতম! আপনার বর্তমান সেক্টর: ${currentSector || 'অজানা'}`;
-        }
-
-        function showAdminView() {
-            loginForms.classList.add('hidden');
-            userSection.classList.add('hidden');
-            adminSection.classList.remove('hidden');
-            logoutButton.classList.remove('hidden');
-            currentViewSpan.textContent = `অ্যাডমিন প্যানেল (ব্যবহারকারী: ${auth.currentUser?.email || auth.currentUser?.uid.substring(0,10)+'...' })`;
-            fetchAdminOrders(); 
-        }
-        
-        // --- User (Passcode) Login ---
-        userLoginButton.addEventListener('click', async () => {
-            const passcode = passcodeEntry.value.trim();
-            if (!passcode) {
-                showMessage('অনুগ্রহ করে পাসকোড প্রবেশ করান।', 'error');
-                return;
-            }
-
-            userLoginButton.disabled = true;
-            userLoginLoadingIndicator.classList.remove('hidden');
-
-            try {
-                const passcodeRef = doc(db, `artifacts/${appId}/public/data/passcode_config`, passcode);
-                const passcodeSnap = await getDoc(passcodeRef);
-
-                if (passcodeSnap.exists()) {
-                    const passcodeData = passcodeSnap.data();
-                    if (passcodeData.isActive === false) { // Optional: check if passcode is active
-                        showMessage('এই পাসকোডটি বর্তমানে সক্রিয় নেই।', 'error');
-                        currentPasscode = null;
-                        currentSector = null;
-                    } else {
-                        currentPasscode = passcode;
-                        currentSector = passcodeData.sector;
-                        
-                        if(isAdmin) { 
-                            console.error("Admin flag true during passcode login. Resetting.");
-                            isAdmin = false; 
-                        }
-                        passcodeEntry.value = ''; 
-                        showUserView();
-                        showMessage(`"${currentSector}" হিসেবে লগইন সফল হয়েছে।`, 'success');
-                    }
-                } else {
-                    showMessage('ভুল পাসকোড। অনুগ্রহ করে সঠিক পাসকোড দিন।', 'error');
-                    currentPasscode = null;
-                    currentSector = null;
-                }
-            } catch (error) {
-                console.error("Error verifying passcode:", error);
-                showMessage(`পাসকোড যাচাই করতে সমস্যা: ${error.message}`, 'error');
-                currentPasscode = null;
-                currentSector = null;
-            } finally {
-                userLoginButton.disabled = false;
-                userLoginLoadingIndicator.classList.add('hidden');
-            }
-        });
-
-        // --- Admin (Email/Password) Login ---
-        adminLoginButton.addEventListener('click', async () => {
-            const email = adminEmailEntry.value.trim();
-            const password = adminPasswordEntry.value.trim();
-
-            if (!email || !password) {
-                showMessage('অনুগ্রহ করে অ্যাডমিন ইমেইল এবং পাসওয়ার্ড দিন।', 'error');
-                return;
-            }
-            
-            generalLoadingIndicator.classList.remove('hidden');
-            adminLoginButton.disabled = true;
-            try {
-                if (auth.currentUser && auth.currentUser.isAnonymous) {
-                    await signOut(auth); 
-                }
-                await signInWithEmailAndPassword(auth, email, password);
-                adminEmailEntry.value = '';
-                adminPasswordEntry.value = '';
-            } catch (error) {
-                console.error("Admin login error:", error);
-                showMessage(`অ্যাডমিন লগইন ব্যর্থ: ${error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' ? 'ভুল ইমেইল অথবা পাসওয়ার্ড।' : error.message}`, 'error');
-                await signInAnonymouslyIfNeeded(); // Restore anonymous session if email login fails
-            } finally {
-                generalLoadingIndicator.classList.add('hidden');
-                adminLoginButton.disabled = false;
-            }
-        });
-
-        // --- Logout ---
-        logoutButton.addEventListener('click', async () => {
-            generalLoadingIndicator.classList.remove('hidden');
-            const wasAdmin = isAdmin; 
-            const wasPasscodeUser = !!currentPasscode;
-
-            try {
-                if (auth.currentUser && !auth.currentUser.isAnonymous) { // Email-password user (admin)
-                    await signOut(auth); 
-                    // authStateChangedHandler will call signInAnonymouslyIfNeeded()
-                    showMessage(wasAdmin ? 'অ্যাডমিন সফলভাবে লগ আউট করেছেন।' : 'সফলভাবে লগ আউট করা হয়েছে।', 'info');
-                } else { // Passcode user (anonymous session)
-                    currentPasscode = null;
-                    currentSector = null;
-                    cart = []; 
-                    renderCart();
-                    showLoginView(); 
-                    showMessage('সফলভাবে লগ আউট করা হয়েছে।', 'info');
-                }
-            } catch (error) {
-                 console.error("Sign out error:", error);
-                 showMessage(`লগ আউট করতে সমস্যা: ${error.message}`, 'error');
-            } finally {
-                isAdmin = false; // Ensure admin flag is reset
-                generalLoadingIndicator.classList.add('hidden');
-            }
-        });
-
-        // --- Product Management (Real-time) ---
-        async function setupInitialProducts() {
-            const productsRef = collection(db, `artifacts/${appId}/public/data/products`);
-            try {
-                const q = query(productsRef); // Simple query to check existence
-                const snapshot = await getDocs(q); // Use getDocs for a one-time check
-                if (snapshot.empty) {
-                    console.log("No products found, setting up initial products...");
-                    const initialProducts = [
-                        { name: 'চাল (Rice)', category: 'কিচেন ক্যাটাগরি', price: 60, description: 'উচ্চ মানের বাসমতী চাল', imageUrl: 'https://placehold.co/300x200/FFFCCC/000000?text=চাল' },
-                        { name: 'ডাল (Lentils)', category: 'কিচেন ক্যাটাগরি', price: 120, description: 'তাজা মুগ ডাল', imageUrl: 'https://placehold.co/300x200/FFFCCC/000000?text=ডাল' },
-                        { name: 'সয়াবিন তেল (Soybean Oil)', category: 'কিচেন ক্যাটাগরি', price: 150, description: '৫ লিটার সয়াবিন তেল', imageUrl: 'https://placehold.co/300x200/FFFCCC/000000?text=তেল' },
-                        { name: 'আলু (Potato)', category: 'কিচেন ক্যাটাগরি', price: 40, description: '১ কেজি তাজা আলু', imageUrl: 'https://placehold.co/300x200/FFFCCC/000000?text=আলু' },
-                        { name: 'পেঁয়াজ (Onion)', category: 'কিচেন ক্যাটাগরি', price: 80, description: '১ কেজি দেশি পেঁয়াজ', imageUrl: 'https://placehold.co/300x200/FFFCCC/000000?text=পেঁয়াজ' },
-                        { name: 'মুরগির মাংস (Chicken)', category: 'রেস্টুরেন্ট ক্যাটাগরি', price: 280, description: '১ কেজি ব্রয়লার মুরগি', imageUrl: 'https://placehold.co/300x200/E6F2FF/000000?text=মুরগি' },
-                        { name: 'গরুর মাংস (Beef)', category: 'রেস্টুরেন্ট ক্যাটাগরি', price: 750, description: '১ কেজি গরুর মাংস (হাড়সহ)', imageUrl: 'https://placehold.co/300x200/E6F2FF/000000?text=গরুর+মাংস' },
-                    ];
-                    for (const product of initialProducts) {
-                        await addDoc(productsRef, product);
-                    }
-                    console.log("Initial products added.");
-                } else {
-                    console.log("Products already exist or listener will populate.");
-                }
-            } catch (error) {
-                console.error("Error setting up initial products: ", error);
-            }
-        }
-
-        function listenToProducts() {
-            if (unsubscribeProducts) unsubscribeProducts(); 
-
-            productLoadingIndicator.classList.remove('hidden');
-            const productsQuery = collection(db, `artifacts/${appId}/public/data/products`);
-            
-            unsubscribeProducts = onSnapshot(productsQuery, (snapshot) => {
-                products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderProducts(); 
-                productLoadingIndicator.classList.add('hidden');
-            }, (error) => {
-                console.error("Error listening to products: ", error);
-                showMessage(`পণ্য আনতে সমস্যা হচ্ছে: ${error.message}`, 'error');
-                productListDiv.innerHTML = '<p class="text-red-500">পণ্য লোড করা যায়নি।</p>';
-                productLoadingIndicator.classList.add('hidden');
-            });
-        }
-
-        function renderProducts() {
-            productListDiv.innerHTML = ''; 
-            if (products.length === 0 && !productLoadingIndicator.classList.contains('hidden')) {
-                return;
-            }
-            if (products.length === 0) {
-                 productListDiv.innerHTML = '<p class="text-center text-gray-500 py-8">এখন কোনো পণ্য উপলব্ধ নেই। অ্যাডমিন শীঘ্রই পণ্য যোগ করবেন।</p>';
-                return;
-            }
-
-            const categories = {
-                'রেস্টুরেন্ট ক্যাটাগরি': products.filter(p => p.category === 'রেস্টুরেন্ট ক্যাটাগরি'),
-                'কিচেন ক্যাটাগরি': products.filter(p => p.category === 'কিচেন ক্যাটাগরি')
-            };
-
-            let productsFound = false;
-            for (const categoryName in categories) {
-                const categoryProducts = categories[categoryName];
-                if (categoryProducts.length > 0) {
-                    productsFound = true;
-                    const categoryHeader = document.createElement('h3');
-                    categoryHeader.className = 'text-2xl font-semibold mt-6 mb-4 text-blue-600';
-                    categoryHeader.textContent = categoryName;
-                    productListDiv.appendChild(categoryHeader);
-
-                    const gridDiv = document.createElement('div');
-                    gridDiv.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6';
-
-                    categoryProducts.forEach(product => {
-                        const productCard = document.createElement('div');
-                        productCard.className = 'bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300 flex flex-col';
-                        productCard.innerHTML = `
-                            <img src="${product.imageUrl || 'https://placehold.co/300x200/E0E0E0/757575?text=পণ্য'}" alt="${product.name}" class="w-full h-48 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/300x200/E0E0E0/757575?text=ত্রুটি';">
-                            <div class="p-4 flex flex-col flex-grow">
-                                <h4 class="text-xl font-semibold text-gray-800 mb-1">${product.name}</h4>
-                                <p class="text-sm text-gray-600 mb-2 flex-grow">${product.description || ''}</p>
-                                <p class="text-lg font-bold text-green-600 mb-3">৳${parseFloat(product.price).toFixed(2)}</p>
-                                <div class="flex items-center mb-3 mt-auto">
-                                    <label for="quantity-${product.id}" class="mr-2 text-sm text-gray-700">পরিমাণ:</label>
-                                    <input type="number" id="quantity-${product.id}" value="1" min="1" class="w-16 p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
-                                </div>
-                                <button data-product-id="${product.id}" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out add-to-cart-btn">
-                                    কার্টে যোগ করুন
-                                </button>
-                            </div>
-                        `;
-                        gridDiv.appendChild(productCard);
-                    });
-                    productListDiv.appendChild(gridDiv);
-                }
-            }
-             if (!productsFound && products.length > 0) { // Products exist but not in expected categories
-                productListDiv.innerHTML = '<p class="text-center text-gray-500 py-8">পণ্য পাওয়া গেছে কিন্তু কোনো ক্যাটাগরিতে নেই। অ্যাডমিনের সাথে যোগাযোগ করুন।</p>';
-            }
-            
-            document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-                button.removeEventListener('click', handleAddToCart); 
-                button.addEventListener('click', handleAddToCart);
-            });
-        }
-        
-        function handleAddToCart(e) {
-            const productId = e.target.dataset.productId;
-            const quantityInput = document.getElementById(`quantity-${productId}`);
-            const quantity = parseInt(quantityInput.value);
-            if (quantity > 0) {
-                addToCart(productId, quantity);
-            } else {
-                showMessage('অনুগ্রহ করে সঠিক পরিমাণ নির্বাচন করুন।', 'error');
-            }
-        }
-
-        // --- Cart Management ---
-        function addToCart(productId, quantity = 1) {
-            const product = products.find(p => p.id === productId);
-            if (!product) return;
-            const existingItem = cart.find(item => item.id === productId);
-            if (existingItem) existingItem.quantity += quantity;
-            else cart.push({ ...product, quantity });
-            renderCart();
-            showMessage(`${product.name} (${quantity} টি) কার্টে যোগ করা হয়েছে।`, 'success', 1500);
-        }
-        function renderCart() {
-            cartItemsDiv.innerHTML = '';
-            let total = 0;
-            if (cart.length === 0) {
-                cartItemsDiv.innerHTML = '<tr><td colspan="5" class="py-3 px-4 text-center text-gray-500">আপনার কার্ট খালি।</td></tr>';
-                cartTotalSpan.textContent = '0.00';
-                placeOrderButton.disabled = true;
-                placeOrderButton.classList.add('opacity-50', 'cursor-not-allowed');
-                return;
-            }
-            cart.forEach((item, index) => {
-                const itemRow = document.createElement('tr');
-                itemRow.className = 'border-b border-gray-200 hover:bg-gray-50';
-                itemRow.innerHTML = `
-                    <td class="py-3 px-4 text-left">${item.name}</td>
-                    <td class="py-3 px-4 text-center">
-                        <input type="number" value="${item.quantity}" min="1" data-cart-item-id="${item.id}" class="w-16 p-1 border border-gray-300 rounded-md cart-item-quantity text-center">
-                    </td>
-                    <td class="py-3 px-4 text-right">৳${parseFloat(item.price).toFixed(2)}</td>
-                    <td class="py-3 px-4 text-right">৳${(parseFloat(item.price) * item.quantity).toFixed(2)}</td>
-                    <td class="py-3 px-4 text-center">
-                        <button data-cart-item-index="${index}" class="text-red-500 hover:text-red-700 remove-from-cart-btn font-semibold">অপসারণ</button>
-                    </td>
-                `;
-                cartItemsDiv.appendChild(itemRow);
-                total += parseFloat(item.price) * item.quantity;
-            });
-            cartTotalSpan.textContent = total.toFixed(2);
-            placeOrderButton.disabled = false;
-            placeOrderButton.classList.remove('opacity-50', 'cursor-not-allowed');
-            document.querySelectorAll('.cart-item-quantity').forEach(input => {
-                input.removeEventListener('change', handleCartQuantityChange);
-                input.addEventListener('change', handleCartQuantityChange);
-            });
-            document.querySelectorAll('.remove-from-cart-btn').forEach(button => {
-                button.removeEventListener('click', handleRemoveFromCart);
-                button.addEventListener('click', handleRemoveFromCart);
-            });
-        }
-        function handleCartQuantityChange(e) { updateCartItemQuantity(e.target.dataset.cartItemId, parseInt(e.target.value)); }
-        function handleRemoveFromCart(e) { removeFromCart(parseInt(e.target.dataset.cartItemIndex)); }
-        function updateCartItemQuantity(itemId, newQuantity) {
-            const item = cart.find(i => i.id === itemId);
-            if (item && newQuantity > 0) item.quantity = newQuantity;
-            else if (item && newQuantity <= 0) cart = cart.filter(i => i.id !== itemId);
-            renderCart();
-        }
-        function removeFromCart(itemIndex) {
-            if (itemIndex >= 0 && itemIndex < cart.length) {
-                const removedItemName = cart[itemIndex].name;
-                cart.splice(itemIndex, 1);
-                renderCart();
-                showMessage(`${removedItemName} কার্ট থেকে সরানো হয়েছে।`, 'info', 1500);
-            }
-        }
-
-        // --- Order Placement ---
-        placeOrderButton.addEventListener('click', async () => {
-            if (!auth.currentUser) {
-                showMessage('অর্ডার প্রক্রিয়াকরণের জন্য একটি সক্রিয় সেশন প্রয়োজন। অনুগ্রহ করে পৃষ্ঠাটি পুনরায় লোড করুন বা আবার লগইন করুন।', 'error');
-                console.error("Order attempt without auth.currentUser.");
-                return;
-            }
-            // For user (passcode) orders, currentPasscode must be set. Admins do not place orders this way.
-            if (!currentPasscode) { 
-                showMessage('ব্যবহারকারী হিসেবে অর্ডার করতে অনুগ্রহ করে একটি পাসকোড দিয়ে লগইন করুন।', 'error');
-                console.error("Order attempt without currentPasscode for a non-admin user.");
-                return;
-            }
-            if (cart.length === 0) {
-                showMessage('অর্ডার করার জন্য আপনার কার্ট খালি। অনুগ্রহ করে পণ্য যোগ করুন।', 'error');
-                return;
-            }
-
-            generalLoadingIndicator.classList.remove('hidden');
-            placeOrderButton.disabled = true;
-            placeOrderButton.classList.add('opacity-50');
-
-            const orderItems = cart.map(item => ({ productId: item.id, productName: item.name, quantity: item.quantity, price: parseFloat(item.price) }));
-            const totalAmount = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
-            
-            // currentSector is already set during passcode login from Firestore
-            if (!currentSector) { // Should not happen if currentPasscode is set
-                 showMessage('অর্ডারের জন্য সেক্টর নির্ধারণ করা যায়নি। অনুগ্রহ করে আবার পাসকোড দিয়ে লগইন করুন।', 'error');
-                 generalLoadingIndicator.classList.add('hidden');
-                 placeOrderButton.disabled = false; placeOrderButton.classList.remove('opacity-50');
-                 return;
-            }
-
-            const orderData = { userId: auth.currentUser.uid, passcodeUsed: currentPasscode, sector: currentSector, items: orderItems, totalAmount: totalAmount, status: 'পেন্ডিং', timestamp: serverTimestamp() };
-            try {
-                const ordersRef = collection(db, `artifacts/${appId}/public/data/orders`);
-                const docRef = await addDoc(ordersRef, orderData);
-                orderSuccessMessage.textContent = `আপনার অর্ডার (ID: ${docRef.id.substring(0,8)}...) সফলভাবে প্লেস করা হয়েছে! মোট বিল: ৳${totalAmount.toFixed(2)}`;
-                orderSuccessModal.classList.remove('hidden');
-                cart = []; renderCart();
-            } catch (error) {
-                console.error("Error placing order: ", error);
-                showMessage(`অর্ডার করতে সমস্যা হচ্ছে: ${error.message}`, 'error');
-            } finally {
-                generalLoadingIndicator.classList.add('hidden');
-                // Re-enable button after modal is closed or if cart still has items
-                placeOrderButton.disabled = cart.length === 0;
-                if (cart.length > 0) placeOrderButton.classList.remove('opacity-50');
-            }
-        });
-        closeOrderSuccessModalButton.addEventListener('click', () => {
-            orderSuccessModal.classList.add('hidden');
-            placeOrderButton.disabled = cart.length === 0; 
-             if(cart.length > 0) placeOrderButton.classList.remove('opacity-50');
-        });
-
-        // --- Admin Panel: Order Management ---
-        adminSectorFilter.addEventListener('change', fetchAdminOrders);
-        function fetchAdminOrders() {
-            if (!isAdmin || !auth.currentUser) return;
-            adminLoadingIndicator.classList.remove('hidden');
-            adminOrdersDiv.innerHTML = '<p class="text-center text-gray-500">অর্ডার লোড হচ্ছে...</p>';
-            if (unsubscribeOrders) unsubscribeOrders();
-            let ordersQuery = collection(db, `artifacts/${appId}/public/data/orders`);
-            const selectedSector = adminSectorFilter.value;
-            if (selectedSector) ordersQuery = query(ordersQuery, where("sector", "==", selectedSector));
-            // Sorting by timestamp client-side as Firestore requires an index for orderBy.
-            unsubscribeOrders = onSnapshot(ordersQuery, (snapshot) => {
-                adminLoadingIndicator.classList.add('hidden');
-                const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                orders.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
-                renderAdminOrders(orders);
-            }, (error) => {
-                console.error("Error fetching admin orders: ", error);
-                adminOrdersDiv.innerHTML = `<p class="text-red-500 text-center">অর্ডার আনতে সমস্যা হচ্ছে: ${error.message}</p>`;
-                adminLoadingIndicator.classList.add('hidden');
-            });
-        }
-        function renderAdminOrders(orders) {
-            adminOrdersDiv.innerHTML = '';
-            if (orders.length === 0) {
-                adminOrdersDiv.innerHTML = '<p class="text-center text-gray-500 py-4">কোনো অর্ডার পাওয়া যায়নি।</p>';
-                return;
-            }
-            const table = document.createElement('table');
-            table.className = 'min-w-full bg-white shadow-md rounded-lg overflow-hidden';
-            table.innerHTML = `
-                <thead class="bg-gray-200 text-gray-700">
-                    <tr>
-                        <th class="py-3 px-4 text-left text-xs sm:text-sm">অর্ডার আইডি</th> <th class="py-3 px-4 text-left text-xs sm:text-sm">সেক্টর</th>
-                        <th class="py-3 px-4 text-left text-xs sm:text-sm">পণ্যসমূহ</th> <th class="py-3 px-4 text-right text-xs sm:text-sm">মোট টাকা</th>
-                        <th class="py-3 px-4 text-left text-xs sm:text-sm">সময়</th> <th class="py-3 px-4 text-left text-xs sm:text-sm">স্ট্যাটাস</th>
-                        <th class="py-3 px-4 text-left text-xs sm:text-sm">অ্যাকশন</th>
-                    </tr>
-                </thead>
-                <tbody class="text-gray-700"></tbody>`;
-            const tbody = table.querySelector('tbody');
-            orders.forEach(order => {
-                const row = tbody.insertRow();
-                row.className = 'border-b border-gray-200 hover:bg-gray-100';
-                const itemsString = order.items.map(item => `${item.productName} (x${item.quantity})`).join(',<br>');
-                const orderTimestamp = order.timestamp ? new Date(order.timestamp.seconds * 1000).toLocaleString('bn-BD', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
-                row.innerHTML = `
-                    <td class="py-3 px-4 text-xs sm:text-sm">${order.id.substring(0, 8)}...</td> <td class="py-3 px-4 text-xs sm:text-sm">${order.sector}</td>
-                    <td class="py-3 px-4 text-xs">${itemsString}</td> <td class="py-3 px-4 text-right text-xs sm:text-sm">৳${parseFloat(order.totalAmount).toFixed(2)}</td>
-                    <td class="py-3 px-4 text-xs">${orderTimestamp}</td>
-                    <td class="py-3 px-4"><span class="px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}">${order.status}</span></td>
-                    <td class="py-3 px-4">
-                        <select data-order-id="${order.id}" class="p-1 border border-gray-300 rounded-md status-change-select text-xs sm:text-sm">
-                            <option value="পেন্ডিং" ${order.status === 'পেন্ডিং' ? 'selected' : ''}>পেন্ডিং</option>
-                            <option value="প্রসেসিং" ${order.status === 'প্রসেসিং' ? 'selected' : ''}>প্রসেসিং</option>
-                            <option value="সম্পন্ন" ${order.status === 'সম্পন্ন' ? 'selected' : ''}>সম্পন্ন</option>
-                            <option value="বাতিল" ${order.status === 'বাতিল' ? 'selected' : ''}>বাতিল</option>
-                        </select>
-                    </td>`;
-            });
-            adminOrdersDiv.appendChild(table);
-            document.querySelectorAll('.status-change-select').forEach(select => {
-                select.removeEventListener('change', handleStatusChange);
-                select.addEventListener('change', handleStatusChange);
-            });
-        }
-        async function handleStatusChange(e) { await updateOrderStatus(e.target.dataset.orderId, e.target.value); }
-        function getStatusColor(status) {
-            switch (status) {
-                case 'পেন্ডিং': return 'bg-yellow-200 text-yellow-800'; case 'প্রসেসিং': return 'bg-blue-200 text-blue-800';
-                case 'সম্পন্ন': return 'bg-green-200 text-green-800'; case 'বাতিল': return 'bg-red-200 text-red-800';
-                default: return 'bg-gray-200 text-gray-800';
-            }
-        }
-        async function updateOrderStatus(orderId, newStatus) {
-            generalLoadingIndicator.classList.remove('hidden'); 
-            const orderRef = doc(db, `artifacts/${appId}/public/data/orders`, orderId);
-            try {
-                await updateDoc(orderRef, { status: newStatus });
-                showMessage(`অর্ডার ${orderId.substring(0,8)}... স্ট্যাটাস "${newStatus}" করা হয়েছে।`, 'success');
-            } catch (error) {
-                console.error("Error updating order status: ", error);
-                showMessage(`অর্ডার স্ট্যাটাস আপডেট করতে সমস্যা: ${error.message}`, 'error');
-            } finally {
-                generalLoadingIndicator.classList.add('hidden'); 
-            }
-        }
-
-        // --- Admin Panel: Add Product ---
-        addProductForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!isAdmin) { showMessage('পণ্য যোগ করার অনুমতি নেই।', 'error'); return; }
-            const name = productNameInput.value.trim();
-            const description = productDescriptionInput.value.trim();
-            const price = parseFloat(productPriceInput.value);
-            const category = productCategoryInput.value;
-            const imageUrl = productImageUrlInput.value.trim();
-            if (!name || !price || !category) { showMessage('পণ্যের নাম, মূল্য এবং ক্যাটাগরি আবশ্যক।', 'error'); return; }
-            if (isNaN(price) || price <= 0) { showMessage('সঠিক মূল্য লিখুন।', 'error'); return; }
-            addProductButton.disabled = true; addProductLoadingIndicator.classList.remove('hidden');
-            const newProduct = { name, description, price, category, imageUrl: imageUrl || `https://placehold.co/300x200/E0E0E0/757575?text=${encodeURIComponent(name)}`, addedBy: auth.currentUser.uid, createdAt: serverTimestamp() };
-            try {
-                const productsRef = collection(db, `artifacts/${appId}/public/data/products`);
-                await addDoc(productsRef, newProduct);
-                showMessage(`পণ্য "${name}" সফলভাবে যোগ করা হয়েছে।`, 'success');
-                addProductForm.reset(); 
-            } catch (error) {
-                console.error("Error adding product:", error);
-                showMessage(`পণ্য যোগ করতে সমস্যা: ${error.message}`, 'error');
-            } finally {
-                addProductButton.disabled = false; addProductLoadingIndicator.classList.add('hidden');
-            }
-        });
 
         // --- Utility Functions ---
         let messageTimeout;
-        function showMessage(msg, type = 'info', duration = 3500) { // Increased default duration
-            messageDiv.textContent = msg;
-            messageDiv.className = 'fixed bottom-5 right-5 p-4 rounded-lg shadow-xl text-white text-sm z-[100] cursor-pointer transition-all duration-300 ease-in-out transform '; 
+        function showMessage(msg, type = 'info', duration = 5000, debugInfo = null) { 
+            let displayMsg = msg;
+            if (debugInfo) {
+                try {
+                    const SENSITIVE_KEYS = ['apiKey', 'password', 'token']; 
+                    const replacer = (key, value) => {
+                        if (SENSITIVE_KEYS.includes(key) && typeof value === 'string' && value.length > 4) {
+                            return value.substring(0, 4) + '...REDACTED';
+                        }
+                        return value;
+                    };
+                    displayMsg += `\n<hr class="my-1 border-gray-300"><small class="block text-gray-200">ডিবাগ: ${JSON.stringify(debugInfo, replacer, 2)}</small>`;
+                } catch (e) {
+                    displayMsg += `\n<hr class="my-1 border-gray-300"><small class="block text-gray-200">ডিবাগ তথ্য দেখাতে সমস্যা: ${e.message}</small>`;
+                }
+            }
+            messageDiv.innerHTML = displayMsg.replace(/\n/g, '<br>');
+            messageDiv.className = 'fixed bottom-5 right-5 p-3 rounded-lg shadow-xl text-white text-xs sm:text-sm z-[100] cursor-pointer transition-all duration-300 ease-in-out transform max-w-xs sm:max-w-sm md:max-w-md overflow-y-auto max-h-48 custom-scrollbar'; 
             
-            if (type === 'success') messageDiv.classList.add('bg-green-500');
-            else if (type === 'error') messageDiv.classList.add('bg-red-500');
-            else if (type === 'info') messageDiv.classList.add('bg-blue-500');
-            else messageDiv.classList.add('bg-gray-700');
+            const typeClasses = {
+                success: 'bg-green-600', error: 'bg-red-600', info: 'bg-blue-600', warning: 'bg-yellow-500 text-black'
+            };
+            messageDiv.classList.remove('bg-green-600', 'bg-red-600', 'bg-blue-600', 'bg-yellow-500', 'text-black', 'bg-gray-700'); // Clear previous type classes
+            messageDiv.classList.add(typeClasses[type] || 'bg-gray-700');
 
             messageDiv.classList.remove('hidden', 'opacity-0', 'translate-y-10');
             messageDiv.classList.add('opacity-100', 'translate-y-0');
@@ -705,6 +143,602 @@
             setTimeout(() => messageDiv.classList.add('hidden'), 300);
             clearTimeout(messageTimeout);
         });
+
+        function updateCurrentViewSpan(text, type = 'info') {
+            currentViewSpan.textContent = text;
+            const typeClasses = {
+                error: 'text-red-300', warning: 'text-yellow-300', success: 'text-green-300', info: 'text-white'
+            };
+            currentViewSpan.className = `text-sm md:text-base ${typeClasses[type] || 'text-white'}`;
+        }
+
+
+        // --- Authentication and Initialization ---
+        async function initializeAppSession() {
+            updateCurrentViewSpan("অ্যাপ শুরু হচ্ছে...", "info");
+            onAuthStateChanged(auth, authStateChangedHandler); 
+
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                updateCurrentViewSpan("কাস্টম টোকেন দিয়ে সাইন-ইন...", "info");
+                try {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                    updateCurrentViewSpan("কাস্টম টোকেন সফল!", "success");
+                } catch (error) {
+                    console.error("Error with custom token sign-in:", error);
+                    updateCurrentViewSpan("কাস্টম টোকেন ব্যর্থ!", "error");
+                    showMessage("কাস্টম টোকেন সাইন-ইন সমস্যা।", "error", 0, { error: error.message });
+                    if (!auth.currentUser) { 
+                        await signInAnonymouslyIfNeeded();
+                    }
+                }
+            } else {
+                 await signInAnonymouslyIfNeeded();
+            }
+        }
+
+        async function signInAnonymouslyIfNeeded() {
+            updateCurrentViewSpan("অ্যানোনিমাস সেশন চেক...", "info");
+            if (!auth.currentUser) {
+                updateCurrentViewSpan("অ্যানোনিমাস সাইন-ইন...", "info");
+                try {
+                    await signInAnonymously(auth);
+                    console.log("Signed in anonymously for initial session.");
+                    updateCurrentViewSpan("অ্যানোনিমাস সেশন সক্রিয়!", "success");
+                } catch (error) {
+                     console.error("Error during anonymous sign-in:", error);
+                     updateCurrentViewSpan("অ্যানোনিমাস সাইন-ইন ব্যর্থ!", "error");
+                     showMessage('প্রাথমিক সেশনে সমস্যা হয়েছে। পৃষ্ঠা রিলোড করুন।', 'error', 0, { error: error.message });
+                }
+            } else {
+                console.log("Anonymous or other user session already exists.");
+                updateCurrentViewSpan("সেশন ইতিমধ্যে সক্রিয়।", "info");
+                if (!isAdmin && !currentPasscode && loginForms.classList.contains('hidden') === false) {
+                    userLoginButton.disabled = false;
+                    adminLoginButton.disabled = false;
+                }
+            }
+        }
+        
+        async function authStateChangedHandler(user) {
+            generalLoadingIndicator.classList.remove('hidden');
+            updateCurrentViewSpan("অথেন্টিকেশন স্ট্যাটাস পরিবর্তন...", "info");
+            isAuthReady = false; 
+            userLoginButton.disabled = true; 
+            adminLoginButton.disabled = true;
+
+            if (user) {
+                currentUserId = user.uid;
+                console.log("Auth State Changed. User UID:", currentUserId, "Anonymous:", user.isAnonymous, "Email:", user.email);
+                isAdmin = false; 
+                isAuthReady = true; 
+
+                if (!user.isAnonymous && user.email) { 
+                    updateCurrentViewSpan("অ্যাডমিন স্ট্যাটাস যাচাই...", "info");
+                    const adminUserRef = doc(db, `artifacts/${appId}/public/data/admin_users`, user.uid);
+                    try {
+                        const adminDocSnap = await getDoc(adminUserRef);
+                        if (adminDocSnap.exists()) {
+                            isAdmin = true;
+                            console.log("Admin user confirmed:", user.uid);
+                            showAdminView();
+                        } else {
+                            console.log("User signed in with email but is not an admin:", user.uid, "- Signing out.");
+                            await signOut(auth); 
+                            updateCurrentViewSpan("অ্যাডমিন নন, সাইন আউট...", "warning");
+                            showMessage('আপনি অ্যাডমিন হিসেবে অনুমোদিত নন।', 'error', 5000);
+                        }
+                    } catch (error) {
+                        console.error("Error checking admin status:", error);
+                        await signOut(auth); 
+                        updateCurrentViewSpan("অ্যাডমিন যাচাই ব্যর্থ!", "error");
+                        showMessage('অ্যাডমিন স্ট্যাটাস যাচাই করতে সমস্যা হয়েছে।', 'error', 0, {error: error.message});
+                    }
+                } else if (user.isAnonymous) { 
+                    console.log("User is anonymous. CurrentPasscode:", currentPasscode, "CurrentSector:", currentSector);
+                    if (currentPasscode && currentSector) { 
+                        showUserView();
+                    } else { 
+                        showLoginView();
+                        updateCurrentViewSpan("লগইন করুন", "info");
+                        userLoginButton.disabled = false; 
+                        adminLoginButton.disabled = false; 
+                    }
+                } else { 
+                    console.warn("User is authenticated but not anonymous and not email? UID:", user.uid);
+                    showLoginView();
+                    updateCurrentViewSpan("অজানা অথ স্ট্যাটাস, লগইন করুন", "warning");
+                    userLoginButton.disabled = false;
+                    adminLoginButton.disabled = false;
+                }
+                
+                await setupInitialProducts(); 
+                listenToProducts();
+
+            } else { 
+                console.log("User is signed out. Attempting to establish anonymous session for login page.");
+                updateCurrentViewSpan("সাইন আউট, অ্যানোনিমাস সেশন চেষ্টা...", "info");
+                currentUserId = null;
+                isAdmin = false;
+                currentPasscode = null; 
+                currentSector = null;
+                cart = []; 
+                renderCart();
+                showLoginView(); 
+                if (unsubscribeProducts) { unsubscribeProducts(); unsubscribeProducts = null; }
+                if (unsubscribeOrders) { unsubscribeOrders(); unsubscribeOrders = null; }
+                await signInAnonymouslyIfNeeded(); 
+            }
+            generalLoadingIndicator.classList.add('hidden');
+        }
+        
+        window.onload = initializeAppSession;
+
+        // --- View Management ---
+        function showLoginView() {
+            loginForms.classList.remove('hidden');
+            userSection.classList.add('hidden');
+            adminSection.classList.add('hidden');
+            logoutButton.classList.add('hidden');
+            // updateCurrentViewSpan("লগইন করুন", "info"); // Set by authStateChangedHandler
+            if (isAuthReady && auth.currentUser && auth.currentUser.isAnonymous) {
+                userLoginButton.disabled = false;
+                adminLoginButton.disabled = false;
+            }
+        }
+
+        function showUserView() {
+            loginForms.classList.add('hidden');
+            userSection.classList.remove('hidden');
+            adminSection.classList.add('hidden');
+            logoutButton.classList.remove('hidden');
+            updateCurrentViewSpan(`স্বাগতম! সেক্টর: ${currentSector || 'অজানা'}`, "success");
+            renderProducts(); // Re-render products when user view is shown
+        }
+
+        function showAdminView() {
+            loginForms.classList.add('hidden');
+            userSection.classList.add('hidden');
+            adminSection.classList.remove('hidden');
+            logoutButton.classList.remove('hidden');
+            updateCurrentViewSpan(`অ্যাডমিন: ${auth.currentUser?.email || '...'}`, "success");
+            fetchAdminOrders(); 
+            renderProducts(); // Admin might also want to see all products or a filtered list
+        }
+        
+        // --- User (Passcode) Login ---
+        userLoginButton.addEventListener('click', async () => {
+            const passcode = passcodeEntry.value.trim();
+            if (!passcode) {
+                showMessage('অনুগ্রহ করে পাসকোড প্রবেশ করান।', 'error');
+                return;
+            }
+
+            const currentUserForDebug = auth.currentUser;
+            const debugAuthInfo = { uid: currentUserForDebug?.uid, isAnonymous: currentUserForDebug?.isAnonymous, isAuthReady: isAuthReady };
+            showMessage("পাসকোড যাচাই করা হচ্ছে...", "info", 2000, debugAuthInfo);
+
+            if (!isAuthReady || !auth.currentUser) {
+                showMessage("অথ সেশন প্রস্তুত নয়। আবার চেষ্টা করুন।", "error", 0, debugAuthInfo);
+                userLoginButton.disabled = false; 
+                userLoginLoadingIndicator.classList.add('hidden');
+                await signInAnonymouslyIfNeeded(); 
+                return;
+            }
+
+            userLoginButton.disabled = true;
+            userLoginLoadingIndicator.classList.remove('hidden');
+
+            try {
+                const passcodeRef = doc(db, `artifacts/${appId}/public/data/passcode_config`, passcode);
+                showMessage("Firestore থেকে পাসকোড আনা হচ্ছে...", "info", 2000);
+                const passcodeSnap = await getDoc(passcodeRef);
+
+                if (passcodeSnap.exists()) {
+                    showMessage("পাসকোড পাওয়া গেছে, যাচাই চলছে...", "info", 2000);
+                    const passcodeData = passcodeSnap.data();
+                    if (passcodeData.isActive === false) { 
+                        showMessage('এই পাসকোডটি বর্তমানে সক্রিয় নেই।', 'error', 0);
+                        currentPasscode = null;
+                        currentSector = null;
+                    } else {
+                        currentPasscode = passcode;
+                        currentSector = passcodeData.sector;
+                        
+                        if(isAdmin) { isAdmin = false; }
+                        passcodeEntry.value = ''; 
+                        showUserView(); // This will call renderProducts
+                        showMessage(`"${currentSector}" হিসেবে লগইন সফল হয়েছে।`, 'success', 3000);
+                    }
+                } else {
+                    showMessage('ভুল পাসকোড। অনুগ্রহ করে সঠিক পাসকোড দিন।', 'error', 0);
+                    currentPasscode = null;
+                    currentSector = null;
+                }
+            } catch (error) {
+                console.error("Error verifying passcode from Firestore:", error); 
+                showMessage(`পাসকোড যাচাই করতে সমস্যা: ${error.message}`, 'error', 0, { error: error.message, code: error.code, authState: debugAuthInfo }); 
+                currentPasscode = null;
+                currentSector = null;
+            } finally {
+                userLoginButton.disabled = false;
+                userLoginLoadingIndicator.classList.add('hidden');
+            }
+        });
+
+        // --- Admin (Email/Password) Login ---
+        adminLoginButton.addEventListener('click', async () => {
+            const email = adminEmailEntry.value.trim();
+            const password = adminPasswordEntry.value.trim();
+            if (!email || !password) { showMessage('অনুগ্রহ করে অ্যাডমিন ইমেইল এবং পাসওয়ার্ড দিন।', 'error'); return; }
+            
+            generalLoadingIndicator.classList.remove('hidden');
+            adminLoginButton.disabled = true;
+            adminLoginLoadingIndicator.classList.remove('hidden');
+            try {
+                if (auth.currentUser && auth.currentUser.isAnonymous) { await signOut(auth); }
+                await signInWithEmailAndPassword(auth, email, password);
+                adminEmailEntry.value = ''; adminPasswordEntry.value = '';
+            } catch (error) {
+                showMessage(`অ্যাডমিন লগইন ব্যর্থ: ${error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' ? 'ভুল ইমেইল অথবা পাসওয়ার্ড।' : error.message}`, 'error', 0, {error: error.message, code: error.code});
+                await signInAnonymouslyIfNeeded(); 
+            } finally {
+                generalLoadingIndicator.classList.add('hidden');
+                adminLoginButton.disabled = false;
+                adminLoginLoadingIndicator.classList.add('hidden');
+            }
+        });
+
+        // --- Logout ---
+        logoutButton.addEventListener('click', async () => {
+            generalLoadingIndicator.classList.remove('hidden');
+            const wasAdmin = isAdmin; 
+            try {
+                currentPasscode = null; currentSector = null;
+                if (auth.currentUser && !auth.currentUser.isAnonymous) { 
+                    await signOut(auth); 
+                    showMessage(wasAdmin ? 'অ্যাডমিন সফলভাবে লগ আউট করেছেন।' : 'সফলভাবে লগ আউট করা হয়েছে।', 'info');
+                } else { 
+                    cart = []; renderCart();
+                    showLoginView(); 
+                    if (isAuthReady && auth.currentUser && auth.currentUser.isAnonymous) {
+                        userLoginButton.disabled = false; adminLoginButton.disabled = false;
+                    }
+                    showMessage('সফলভাবে লগ আউট করা হয়েছে।', 'info');
+                }
+            } catch (error) {
+                 showMessage(`লগ আউট করতে সমস্যা: ${error.message}`, 'error', 0, {error: error.message});
+            } finally {
+                isAdmin = false; 
+                generalLoadingIndicator.classList.add('hidden');
+            }
+        });
+
+        // --- Product Management (Real-time) ---
+        async function setupInitialProducts() { 
+            const productsRef = collection(db, `artifacts/${appId}/public/data/products`);
+            try {
+                const q = query(productsRef); 
+                const snapshot = await getDocs(q); 
+                if (snapshot.empty) {
+                    console.log("No products found, setting up initial products...");
+                    const initialProducts = [
+                        { name: 'চাল', category: 'কিচেন ক্যাটাগরি', price: 60, description: 'উচ্চ মানের বাসমতী চাল', imageUrl: 'https://placehold.co/300x200/FFFCCC/000000?text=চাল' },
+                        { name: 'ডাল', category: 'কিচেন ক্যাটাগরি', price: 120, description: 'তাজা মুগ ডাল', imageUrl: 'https://placehold.co/300x200/FFFCCC/000000?text=ডাল' },
+                        { name: 'তেল', category: 'কিচেন ক্যাটাগরি', price: 150, description: '৫ লিটার সয়াবিন তেল', imageUrl: 'https://placehold.co/300x200/FFFCCC/000000?text=তেল' },
+                        { name: 'আলু', category: 'কিচেন ক্যাটাগরি', price: 40, description: '১ কেজি তাজা আলু', imageUrl: 'https://placehold.co/300x200/FFFCCC/000000?text=আলু' },
+                        { name: 'পেঁয়াজ', category: 'কিচেন ক্যাটাগরি', price: 80, description: '১ কেজি দেশি পেঁয়াজ', imageUrl: 'https://placehold.co/300x200/FFFCCC/000000?text=পেঁয়াজ' },
+                        { name: 'মুরগি', category: 'রেস্টুরেন্ট ক্যাটাগরি', price: 280, description: '১ কেজি ব্রয়লার মুরগি', imageUrl: 'https://placehold.co/300x200/E6F2FF/000000?text=মুরগি' },
+                        { name: 'গরুর মাংস', category: 'রেস্টুরেন্ট ক্যাটাগরি', price: 750, description: '১ কেজি গরুর মাংস', imageUrl: 'https://placehold.co/300x200/E6F2FF/000000?text=গরুর+মাংস' },
+                        { name: 'পাউরুটি', category: 'অল সেক্টর ক্যাটাগরি', price: 50, description: 'সকালের নাস্তার জন্য', imageUrl: 'https://placehold.co/300x200/D2E4FC/000000?text=পাউরুটি' },
+                        { name: 'ডিম', category: 'অল সেক্টর ক্যাটাগরি', price: 120, description: 'এক ডজন ফার্মের ডিম', imageUrl: 'https://placehold.co/300x200/D2E4FC/000000?text=ডিম' },
+                    ];
+                    for (const product of initialProducts) {
+                        await addDoc(productsRef, product);
+                    }
+                    console.log("Initial products added.");
+                }
+            } catch (error) {
+                console.error("Error setting up initial products: ", error);
+            }
+        }
+        function listenToProducts() { 
+            if (unsubscribeProducts) unsubscribeProducts(); 
+            productLoadingIndicator.classList.remove('hidden');
+            const productsQuery = collection(db, `artifacts/${appId}/public/data/products`);
+            unsubscribeProducts = onSnapshot(productsQuery, (snapshot) => {
+                allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderProducts(); // Render products whenever they change
+                productLoadingIndicator.classList.add('hidden');
+            }, (error) => {
+                showMessage(`পণ্য আনতে সমস্যা: ${error.message}`, 'error', 0, {error: error.message});
+                productListDiv.innerHTML = '<p class="text-red-500">পণ্য লোড করা যায়নি।</p>';
+                productLoadingIndicator.classList.add('hidden');
+            });
+        }
+        
+        function renderProducts() {
+            productListDiv.innerHTML = ''; 
+            if (!isAuthReady) {
+                productListDiv.innerHTML = '<p class="text-center text-gray-500 py-8">অথেন্টিকেশন লোড হচ্ছে...</p>';
+                return;
+            }
+            if (!currentSector && !isAdmin) { // User not logged in via passcode, and not admin
+                productListDiv.innerHTML = '<p class="text-center text-gray-500 py-8">অনুগ্রহ করে পাসকোড দিয়ে লগইন করে পণ্য দেখুন।</p>';
+                return;
+            }
+             if (allProducts.length === 0 && productLoadingIndicator.classList.contains('hidden')) {
+                 productListDiv.innerHTML = '<p class="text-center text-gray-500 py-8">এখন কোনো পণ্য উপলব্ধ নেই। অ্যাডমিন শীঘ্রই পণ্য যোগ করবেন।</p>';
+                return;
+            }
+             if (allProducts.length === 0 && !productLoadingIndicator.classList.contains('hidden')) {
+                // Still loading, do nothing yet, productLoadingIndicator is visible
+                return;
+            }
+
+            let productsToDisplayInKitchenGroup = [];
+            let productsToDisplayInRestaurantGroup = [];
+
+            if (isAdmin) { // Admin sees all products, grouped as they are
+                productsToDisplayInKitchenGroup = allProducts.filter(p => p.category === 'কিচেন ক্যাটাগরি');
+                productsToDisplayInRestaurantGroup = allProducts.filter(p => p.category === 'রেস্টুরেন্ট ক্যাটাগরি');
+                // Admin also sees "All Sector" products under a separate heading or merged.
+                // For simplicity, let's show them under their own category for admin.
+                const allSectorForAdmin = allProducts.filter(p => p.category === 'অল সেক্টর ক্যাটাগরি');
+                if (allSectorForAdmin.length > 0) {
+                     productsToDisplayInRestaurantGroup = productsToDisplayInRestaurantGroup.concat(allSectorForAdmin); // Or a new group
+                }
+
+            } else { // User view, filter by sector
+                allProducts.forEach(product => {
+                    const productCategory = product.category;
+                    let isVisible = false;
+
+                    if (currentSector === 'কিচেন সেক্টর') {
+                        if (productCategory === 'কিচেন ক্যাটাগরি' || productCategory === 'অল সেক্টর ক্যাটাগরি') {
+                            isVisible = true;
+                        }
+                    } else if (currentSector === 'পুরুষ সেক্টর' || currentSector === 'ফ্যামিলি সেক্টর') {
+                        if (productCategory === 'রেস্টুরেন্ট ক্যাটাগরি' || productCategory === 'অল সেক্টর ক্যাটাগরি') {
+                            isVisible = true;
+                        }
+                    }
+
+                    if (isVisible) {
+                        if (productCategory === 'কিচেন ক্যাটাগরি') {
+                            productsToDisplayInKitchenGroup.push(product);
+                        } else if (productCategory === 'রেস্টুরেন্ট ক্যাটাগরি') {
+                            productsToDisplayInRestaurantGroup.push(product);
+                        } else if (productCategory === 'অল সেক্টর ক্যাটাগরি') {
+                            if (currentSector === 'কিচেন সেক্টর') {
+                                productsToDisplayInKitchenGroup.push(product);
+                            } else { // পুরুষ বা ফ্যামিলি সেক্টর
+                                productsToDisplayInRestaurantGroup.push(product);
+                            }
+                        }
+                    }
+                });
+            }
+            
+            let productsDisplayed = false;
+            // Render Kitchen Category Products
+            if (productsToDisplayInKitchenGroup.length > 0) {
+                productsDisplayed = true;
+                renderProductGroup('কিচেন ক্যাটাগরি', productsToDisplayInKitchenGroup);
+            }
+            // Render Restaurant Category Products
+            if (productsToDisplayInRestaurantGroup.length > 0) {
+                productsDisplayed = true;
+                renderProductGroup('রেস্টুরেন্ট ক্যাটাগরি', productsToDisplayInRestaurantGroup);
+            }
+
+            if (!productsDisplayed && allProducts.length > 0 && !isAdmin) {
+                 productListDiv.innerHTML = '<p class="text-center text-gray-500 py-8">আপনার বর্তমান সেক্টরের জন্য কোনো পণ্য উপলব্ধ নেই।</p>';
+            } else if (!productsDisplayed && allProducts.length === 0 && productLoadingIndicator.classList.contains('hidden')) {
+                // This case is handled by the initial check for allProducts.length === 0
+            }
+        }
+
+        function renderProductGroup(headerText, productsInGroup) {
+            const categoryHeader = document.createElement('h3');
+            categoryHeader.className = 'text-2xl font-semibold mt-6 mb-4 text-blue-600';
+            categoryHeader.textContent = headerText;
+            productListDiv.appendChild(categoryHeader);
+
+            const gridDiv = document.createElement('div');
+            gridDiv.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6';
+
+            productsInGroup.forEach(product => { 
+                const productCard = document.createElement('div');
+                productCard.className = 'bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300 flex flex-col';
+                productCard.innerHTML = `
+                    <img src="${product.imageUrl || 'https://placehold.co/300x200/E0E0E0/757575?text=পণ্য'}" alt="${product.name}" class="w-full h-48 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/300x200/E0E0E0/757575?text=ত্রুটি';">
+                    <div class="p-4 flex flex-col flex-grow">
+                        <h4 class="text-xl font-semibold text-gray-800 mb-1">${product.name}</h4>
+                        <p class="text-sm text-gray-600 mb-2 flex-grow">${product.description || ''}</p>
+                        <p class="text-lg font-bold text-green-600 mb-3">৳${parseFloat(product.price).toFixed(2)}</p>
+                        <div class="flex items-center mb-3 mt-auto">
+                            <label for="quantity-${product.id}" class="mr-2 text-sm text-gray-700">পরিমাণ:</label>
+                            <input type="number" id="quantity-${product.id}" value="1" min="1" class="w-16 p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <button data-product-id="${product.id}" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out add-to-cart-btn">কার্টে যোগ করুন</button>
+                    </div>`;
+                gridDiv.appendChild(productCard);
+            });
+            productListDiv.appendChild(gridDiv);
+            
+            document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+                button.removeEventListener('click', handleAddToCart); 
+                button.addEventListener('click', handleAddToCart);
+            });
+        }
+        
+        function handleAddToCart(e) { 
+            const productId = e.target.dataset.productId;
+            const quantityInput = document.getElementById(`quantity-${productId}`);
+            const quantity = parseInt(quantityInput.value);
+            if (quantity > 0) addToCart(productId, quantity);
+            else showMessage('সঠিক পরিমাণ দিন।', 'error');
+        }
+
+        // --- Cart Management ---
+        function addToCart(productId, quantity = 1) { /* ... Same as before ... */ 
+            const product = allProducts.find(p => p.id === productId); // Use allProducts
+            if (!product) return;
+            const existingItem = cart.find(item => item.id === productId);
+            if (existingItem) existingItem.quantity += quantity;
+            else cart.push({ ...product, quantity });
+            renderCart();
+            showMessage(`${product.name} (${quantity}) কার্টে যোগ করা হয়েছে।`, 'success', 1500);
+        }
+        function renderCart() { /* ... Same as before ... */ 
+            cartItemsDiv.innerHTML = '';
+            let total = 0;
+            if (cart.length === 0) {
+                cartItemsDiv.innerHTML = '<tr><td colspan="5" class="py-3 px-4 text-center text-gray-500">কার্ট খালি।</td></tr>';
+                cartTotalSpan.textContent = '0.00';
+                placeOrderButton.disabled = true; placeOrderButton.classList.add('opacity-50', 'cursor-not-allowed');
+                return;
+            }
+            cart.forEach((item, index) => { 
+                const itemRow = document.createElement('tr');
+                itemRow.className = 'border-b border-gray-200 hover:bg-gray-50';
+                itemRow.innerHTML = `
+                    <td class="py-3 px-4 text-left">${item.name}</td>
+                    <td class="py-3 px-4 text-center"><input type="number" value="${item.quantity}" min="1" data-cart-item-id="${item.id}" class="w-16 p-1 border border-gray-300 rounded-md cart-item-quantity text-center"></td>
+                    <td class="py-3 px-4 text-right">৳${parseFloat(item.price).toFixed(2)}</td>
+                    <td class="py-3 px-4 text-right">৳${(parseFloat(item.price) * item.quantity).toFixed(2)}</td>
+                    <td class="py-3 px-4 text-center"><button data-cart-item-index="${index}" class="text-red-500 hover:text-red-700 remove-from-cart-btn font-semibold">অপসারণ</button></td>`;
+                cartItemsDiv.appendChild(itemRow);
+                total += parseFloat(item.price) * item.quantity;
+            });
+            cartTotalSpan.textContent = total.toFixed(2);
+            placeOrderButton.disabled = false; placeOrderButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            document.querySelectorAll('.cart-item-quantity').forEach(input => { input.removeEventListener('change', handleCartQuantityChange); input.addEventListener('change', handleCartQuantityChange); });
+            document.querySelectorAll('.remove-from-cart-btn').forEach(button => { button.removeEventListener('click', handleRemoveFromCart); button.addEventListener('click', handleRemoveFromCart); });
+        }
+        function handleCartQuantityChange(e) { updateCartItemQuantity(e.target.dataset.cartItemId, parseInt(e.target.value)); }
+        function handleRemoveFromCart(e) { removeFromCart(parseInt(e.target.dataset.cartItemIndex)); }
+        function updateCartItemQuantity(itemId, newQuantity) { /* ... Same as before ... */ 
+            const item = cart.find(i => i.id === itemId);
+            if (item && newQuantity > 0) item.quantity = newQuantity;
+            else if (item && newQuantity <= 0) cart = cart.filter(i => i.id !== itemId);
+            renderCart();
+        }
+        function removeFromCart(itemIndex) { /* ... Same as before ... */
+            if (itemIndex >= 0 && itemIndex < cart.length) {
+                const removedItemName = cart[itemIndex].name;
+                cart.splice(itemIndex, 1);
+                renderCart();
+                showMessage(`${removedItemName} সরানো হয়েছে।`, 'info', 1500);
+            }
+        }
+
+        // --- Order Placement ---
+        placeOrderButton.addEventListener('click', async () => { /* ... Same as before, ensure showMessage has debug info for errors ... */ 
+            const currentUserForDebug = auth.currentUser;
+            const debugAuthInfo = { uid: currentUserForDebug?.uid, isAnonymous: currentUserForDebug?.isAnonymous, currentPasscode, currentSector, isAuthReady };
+            if (!isAuthReady || !auth.currentUser) { showMessage('সেশন প্রস্তুত নয়। পৃষ্ঠা রিলোড করুন।', 'error', 0, debugAuthInfo); return; }
+            if (!currentPasscode) { showMessage('পাসকোড দিয়ে লগইন করুন।', 'error', 0, debugAuthInfo); return; }
+            if (cart.length === 0) { showMessage('কার্ট খালি।', 'error', 5000); return; }
+            generalLoadingIndicator.classList.remove('hidden'); placeOrderButton.disabled = true; placeOrderButton.classList.add('opacity-50');
+            const orderItems = cart.map(item => ({ productId: item.id, productName: item.name, quantity: item.quantity, price: parseFloat(item.price) }));
+            const totalAmount = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
+            if (!currentSector) { showMessage('সেক্টর নির্ধারণ করা যায়নি।', 'error', 0, debugAuthInfo); generalLoadingIndicator.classList.add('hidden'); placeOrderButton.disabled = cart.length === 0; if (cart.length > 0) placeOrderButton.classList.remove('opacity-50'); return; }
+            const orderData = { userId: auth.currentUser.uid, passcodeUsed: currentPasscode, sector: currentSector, items: orderItems, totalAmount: totalAmount, status: 'পেন্ডিং', timestamp: serverTimestamp() };
+            try {
+                const ordersRef = collection(db, `artifacts/${appId}/public/data/orders`);
+                const docRef = await addDoc(ordersRef, orderData);
+                orderSuccessMessage.textContent = `অর্ডার (ID: ${docRef.id.substring(0,8)}...) সফল! বিল: ৳${totalAmount.toFixed(2)}`;
+                orderSuccessModal.classList.remove('hidden');
+                cart = []; renderCart();
+            } catch (error) { showMessage(`অর্ডার করতে সমস্যা: ${error.message}`, 'error', 0, {error: error.message, code: error.code, authState: debugAuthInfo});
+            } finally { generalLoadingIndicator.classList.add('hidden'); placeOrderButton.disabled = cart.length === 0; if (cart.length > 0) placeOrderButton.classList.remove('opacity-50'); }
+        });
+        closeOrderSuccessModalButton.addEventListener('click', () => { /* ... Same as before ... */ 
+            orderSuccessModal.classList.add('hidden');
+            placeOrderButton.disabled = cart.length === 0; 
+             if(cart.length > 0) placeOrderButton.classList.remove('opacity-50');
+        });
+
+        // --- Admin Panel: Order Management ---
+        adminSectorFilter.addEventListener('change', fetchAdminOrders);
+        function fetchAdminOrders() { /* ... Same as before ... */ 
+            if (!isAdmin || !auth.currentUser) return;
+            adminLoadingIndicator.classList.remove('hidden'); adminOrdersDiv.innerHTML = '<p class="text-center text-gray-500">অর্ডার লোড হচ্ছে...</p>';
+            if (unsubscribeOrders) unsubscribeOrders();
+            let ordersQuery = collection(db, `artifacts/${appId}/public/data/orders`);
+            const selectedSector = adminSectorFilter.value;
+            if (selectedSector) ordersQuery = query(ordersQuery, where("sector", "==", selectedSector));
+            unsubscribeOrders = onSnapshot(ordersQuery, (snapshot) => {
+                adminLoadingIndicator.classList.add('hidden');
+                const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                orders.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+                renderAdminOrders(orders);
+            }, (error) => { showMessage(`অ্যাডমিন অর্ডার আনতে সমস্যা: ${error.message}`, 'error', 0, {error: error.message}); adminOrdersDiv.innerHTML = `<p class="text-red-500 text-center">অর্ডার আনতে সমস্যা।</p>`; adminLoadingIndicator.classList.add('hidden'); });
+        }
+        function renderAdminOrders(orders) { /* ... Same as before ... */ 
+            adminOrdersDiv.innerHTML = '';
+            if (orders.length === 0) { adminOrdersDiv.innerHTML = '<p class="text-center text-gray-500 py-4">কোনো অর্ডার নেই।</p>'; return; }
+            const table = document.createElement('table');
+            table.className = 'min-w-full bg-white shadow-md rounded-lg overflow-hidden';
+            table.innerHTML = `
+                <thead class="bg-gray-200 text-gray-700"><tr>
+                    <th class="py-3 px-4 text-left text-xs sm:text-sm">অর্ডার আইডি</th> <th class="py-3 px-4 text-left text-xs sm:text-sm">সেক্টর</th>
+                    <th class="py-3 px-4 text-left text-xs sm:text-sm">পণ্যসমূহ</th> <th class="py-3 px-4 text-right text-xs sm:text-sm">মোট টাকা</th>
+                    <th class="py-3 px-4 text-left text-xs sm:text-sm">সময়</th> <th class="py-3 px-4 text-left text-xs sm:text-sm">স্ট্যাটাস</th>
+                    <th class="py-3 px-4 text-left text-xs sm:text-sm">অ্যাকশন</th>
+                </tr></thead><tbody class="text-gray-700"></tbody>`;
+            const tbody = table.querySelector('tbody');
+            orders.forEach(order => { /* ... order row HTML ... */ 
+                const row = tbody.insertRow(); row.className = 'border-b border-gray-200 hover:bg-gray-100';
+                const itemsString = order.items.map(item => `${item.productName} (x${item.quantity})`).join(',<br>');
+                const orderTimestamp = order.timestamp ? new Date(order.timestamp.seconds * 1000).toLocaleString('bn-BD', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
+                row.innerHTML = `
+                    <td class="py-3 px-4 text-xs sm:text-sm">${order.id.substring(0, 8)}...</td> <td class="py-3 px-4 text-xs sm:text-sm">${order.sector}</td>
+                    <td class="py-3 px-4 text-xs">${itemsString}</td> <td class="py-3 px-4 text-right text-xs sm:text-sm">৳${parseFloat(order.totalAmount).toFixed(2)}</td>
+                    <td class="py-3 px-4 text-xs">${orderTimestamp}</td>
+                    <td class="py-3 px-4"><span class="px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}">${order.status}</span></td>
+                    <td class="py-3 px-4"><select data-order-id="${order.id}" class="p-1 border border-gray-300 rounded-md status-change-select text-xs sm:text-sm"><option value="পেন্ডিং" ${order.status === 'পেন্ডিং' ? 'selected' : ''}>পেন্ডিং</option><option value="প্রসেসিং" ${order.status === 'প্রসেসিং' ? 'selected' : ''}>প্রসেসিং</option><option value="সম্পন্ন" ${order.status === 'সম্পন্ন' ? 'selected' : ''}>সম্পন্ন</option><option value="বাতিল" ${order.status === 'বাতিল' ? 'selected' : ''}>বাতিল</option></select></td>`;
+            });
+            adminOrdersDiv.appendChild(table);
+            document.querySelectorAll('.status-change-select').forEach(select => { select.removeEventListener('change', handleStatusChange); select.addEventListener('change', handleStatusChange); });
+        }
+        async function handleStatusChange(e) { await updateOrderStatus(e.target.dataset.orderId, e.target.value); }
+        function getStatusColor(status) { /* ... Same as before ... */ 
+            switch (status) { case 'পেন্ডিং': return 'bg-yellow-200 text-yellow-800'; case 'প্রসেসিং': return 'bg-blue-200 text-blue-800'; case 'সম্পন্ন': return 'bg-green-200 text-green-800'; case 'বাতিল': return 'bg-red-200 text-red-800'; default: return 'bg-gray-200 text-gray-800'; }
+        }
+        async function updateOrderStatus(orderId, newStatus) { /* ... Same as before, ensure showMessage has debug info for errors ... */ 
+            generalLoadingIndicator.classList.remove('hidden'); 
+            const orderRef = doc(db, `artifacts/${appId}/public/data/orders`, orderId);
+            try {
+                await updateDoc(orderRef, { status: newStatus });
+                showMessage(`অর্ডার ${orderId.substring(0,8)}... স্ট্যাটাস "${newStatus}" হয়েছে।`, 'success');
+            } catch (error) { showMessage(`অর্ডার স্ট্যাটাস আপডেট সমস্যা: ${error.message}`, 'error', 0, {error: error.message, code: error.code});
+            } finally { generalLoadingIndicator.classList.add('hidden'); }
+        }
+
+        // --- Admin Panel: Add Product ---
+        addProductForm.addEventListener('submit', async (e) => { 
+            e.preventDefault();
+            if (!isAdmin) { showMessage('পণ্য যোগ করার অনুমতি নেই।', 'error'); return; }
+            const name = productNameInput.value.trim(); 
+            const description = productDescriptionInput.value.trim();
+            const price = parseFloat(productPriceInput.value);
+            const category = productCategoryInput.value; // This now includes "অল সেক্টর ক্যাটাগরি"
+            const imageUrl = productImageUrlInput.value.trim();
+            if (!name || !price || !category) { showMessage('নাম, মূল্য এবং ক্যাটাগরি আবশ্যক।', 'error'); return; }
+            if (isNaN(price) || price <= 0) { showMessage('সঠিক মূল্য লিখুন।', 'error'); return; }
+            addProductButton.disabled = true; addProductLoadingIndicator.classList.remove('hidden');
+            const newProduct = { name, description, price, category, imageUrl: imageUrl || `https://placehold.co/300x200/E0E0E0/757575?text=${encodeURIComponent(name)}`, addedBy: auth.currentUser.uid, createdAt: serverTimestamp() };
+            try {
+                const productsRef = collection(db, `artifacts/${appId}/public/data/products`);
+                await addDoc(productsRef, newProduct);
+                showMessage(`পণ্য "${name}" যোগ করা হয়েছে।`, 'success');
+                addProductForm.reset(); 
+            } catch (error) { showMessage(`পণ্য যোগ করতে সমস্যা: ${error.message}`, 'error', 0, {error: error.message, code: error.code});
+            } finally { addProductButton.disabled = false; addProductLoadingIndicator.classList.add('hidden'); }
+        });
+
     </script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -740,7 +774,7 @@
                     <label for="passcodeEntry" class="block text-sm font-medium text-gray-600 mb-1">পাসকোড:</label>
                     <input type="password" id="passcodeEntry" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150" placeholder="আপনার পাসকোড দিন">
                 </div>
-                <button id="userLoginButton" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out transform hover:scale-105 flex items-center justify-center">
+                <button id="userLoginButton" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out transform hover:scale-105 flex items-center justify-center" disabled>
                     <span id="userLoginLoadingIndicator" class="hidden mr-2">
                         <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     </span>
@@ -757,7 +791,12 @@
                     <label for="adminPasswordEntry" class="block text-sm font-medium text-gray-600 mb-1">অ্যাডমিন পাসওয়ার্ড:</label>
                     <input type="password" id="adminPasswordEntry" autocomplete="current-password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-150" placeholder="পাসওয়ার্ড">
                 </div>
-                <button id="adminLoginButton" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out transform hover:scale-105">অ্যাডমিন হিসেবে প্রবেশ</button>
+                <button id="adminLoginButton" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out transform hover:scale-105 flex items-center justify-center" disabled>
+                     <span id="adminLoginLoadingIndicator" class="hidden mr-2">
+                        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    </span>
+                    অ্যাডমিন হিসেবে প্রবেশ
+                </button>
             </div>
         </section>
 
@@ -795,7 +834,14 @@
                     <div><label for="productName" class="block text-sm font-medium text-gray-700">পণ্যের নাম:</label><input type="text" id="productName" name="productName" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"></div>
                     <div><label for="productDescription" class="block text-sm font-medium text-gray-700">পণ্যের বিবরণ (ঐচ্ছিক):</label><textarea id="productDescription" name="productDescription" rows="3" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"></textarea></div>
                     <div><label for="productPrice" class="block text-sm font-medium text-gray-700">মূল্য (৳):</label><input type="number" id="productPrice" name="productPrice" required min="0.01" step="0.01" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"></div>
-                    <div><label for="productCategory" class="block text-sm font-medium text-gray-700">ক্যাটাগরি:</label><select id="productCategory" name="productCategory" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"><option value="কিচেন ক্যাটাগরি">কিচেন ক্যাটাগরি</option><option value="রেস্টুরেন্ট ক্যাটাগরি">রেস্টুরেন্ট ক্যাটাগরি</option></select></div>
+                    <div>
+                        <label for="productCategory" class="block text-sm font-medium text-gray-700">ক্যাটাগরি:</label>
+                        <select id="productCategory" name="productCategory" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500">
+                            <option value="কিচেন ক্যাটাগরি">কিচেন ক্যাটাগরি</option>
+                            <option value="রেস্টুরেন্ট ক্যাটাগরি">রেস্টুরেন্ট ক্যাটাগরি</option>
+                            <option value="অল সেক্টর ক্যাটাগরি">অল সেক্টর ক্যাটাগরি</option>
+                        </select>
+                    </div>
                     <div><label for="productImageUrl" class="block text-sm font-medium text-gray-700">ছবির URL (ঐচ্ছিক):</label><input type="url" id="productImageUrl" name="productImageUrl" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500" placeholder="https://example.com/image.jpg"></div>
                     <button type="submit" id="addProductButton" class="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-md transition duration-150 flex items-center justify-center">
                         <span id="addProductLoadingIndicator" class="hidden mr-2"><svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></span>
@@ -824,7 +870,7 @@
     <div id="generalLoadingIndicator" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-[110]">
         <svg class="animate-spin h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
     </div>
-    <div id="messageDiv" class="hidden fixed bottom-5 right-5 p-4 rounded-lg shadow-xl text-white text-sm z-[100] cursor-pointer opacity-0 translate-y-10"></div>
+    <div id="messageDiv" class="hidden fixed bottom-5 right-5 p-3 rounded-lg shadow-xl text-white text-xs sm:text-sm z-[100] cursor-pointer opacity-0 translate-y-10 max-w-xs sm:max-w-sm md:max-w-md overflow-y-auto max-h-48 custom-scrollbar"></div>
     <div id="orderSuccessModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full modal z-[90]">
         <div class="relative top-1/4 mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white modal-content">
             <div class="mt-3 text-center">
