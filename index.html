@@ -14,7 +14,8 @@
             onAuthStateChanged, 
             signInWithEmailAndPassword,
             signOut,
-            signInWithCustomToken
+            signInWithCustomToken,
+            deleteUser
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { 
             getFirestore, 
@@ -28,7 +29,8 @@
             serverTimestamp, 
             updateDoc,
             getDoc,
-            setLogLevel // Added for debugging if needed
+            deleteDoc, // Added deleteDoc
+            setLogLevel 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
@@ -46,12 +48,13 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        // setLogLevel('debug'); // Uncomment for detailed Firestore logs in console
+        // setLogLevel('debug'); 
 
         // --- Application ID ---
-        // This will use the __app_id provided by the environment, or fallback to the one in firebaseConfig.
-        // Ensure this appId is consistent with the one you intend for your Firestore paths.
-        const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.appId; 
+        // IMPORTANT: Ensure this appId matches the segment used in your Firestore paths.
+        // Prioritize __app_id (from environment), then firebaseConfig.projectId.
+        const appId = typeof __app_id !== 'undefined' && __app_id !== '' ? __app_id : firebaseConfig.projectId; 
+        console.log("Using App ID for Firestore paths:", appId);
         
         // --- Global State Variables ---
         let currentUserId = null;
@@ -201,7 +204,7 @@
                      showMessage('প্রাথমিক সেশনে সমস্যা হয়েছে। পৃষ্ঠা রিলোড করুন।', 'error', 0, { error: error.message });
                 }
             } else {
-                console.log("Anonymous or other user session already exists.");
+                console.log("Anonymous or other user session already exists. UID:", auth.currentUser.uid, "Anonymous:", auth.currentUser.isAnonymous);
                 updateCurrentViewSpan("সেশন ইতিমধ্যে সক্রিয়।", "info");
                 if (!isAdmin && !currentPasscode && loginForms.classList.contains('hidden') === false) {
                     userLoginButton.disabled = false;
@@ -220,30 +223,30 @@
             if (user) {
                 currentUserId = user.uid;
                 console.log("Auth State Changed. User UID:", currentUserId, "Anonymous:", user.isAnonymous, "Email:", user.email);
-                isAdmin = false; 
+                isAdmin = false; // Reset admin status on auth change
                 isAuthReady = true; 
 
                 if (!user.isAnonymous && user.email) { 
                     updateCurrentViewSpan("অ্যাডমিন স্ট্যাটাস যাচাই...", "info");
-                    // Path to check admin status. Ensure 'appId' is correctly resolved.
                     const adminUserRef = doc(db, `artifacts/${appId}/public/data/admin_users`, user.uid);
+                    console.log("Checking admin status at path:", adminUserRef.path);
                     try {
                         const adminDocSnap = await getDoc(adminUserRef);
                         if (adminDocSnap.exists()) {
                             isAdmin = true;
-                            console.log("Admin user confirmed:", user.uid);
+                            console.log("Admin user confirmed by JS check:", user.uid);
                             showAdminView();
                         } else {
-                            console.log("User signed in with email but is not an admin:", user.uid, "- Signing out.");
+                            console.log("User signed in with email but is NOT an admin in Firestore:", user.uid, "- Signing out.");
                             await signOut(auth); 
                             updateCurrentViewSpan("অ্যাডমিন নন, সাইন আউট...", "warning");
-                            showMessage('আপনি অ্যাডমিন হিসেবে অনুমোদিত নন।', 'error', 5000);
+                            showMessage('আপনি অ্যাডমিন হিসেবে অনুমোদিত নন। আপনার UID অ্যাডমিন তালিকায় নেই।', 'error', 5000, {checkedPath: adminUserRef.path});
                         }
                     } catch (error) {
-                        console.error("Error checking admin status:", error);
+                        console.error("Error checking admin status in JS:", error);
                         await signOut(auth); 
                         updateCurrentViewSpan("অ্যাডমিন যাচাই ব্যর্থ!", "error");
-                        showMessage('অ্যাডমিন স্ট্যাটাস যাচাই করতে সমস্যা হয়েছে।', 'error', 0, {error: error.message});
+                        showMessage('অ্যাডমিন স্ট্যাটাস যাচাই করতে সমস্যা হয়েছে।', 'error', 0, {error: error.message, path: adminUserRef.path});
                     }
                 } else if (user.isAnonymous) { 
                     console.log("User is anonymous. CurrentPasscode:", currentPasscode, "CurrentSector:", currentSector);
@@ -263,8 +266,6 @@
                     adminLoginButton.disabled = false;
                 }
                 
-                // Demo products are no longer set up here.
-                // Products will be fetched by listenToProducts.
                 listenToProducts();
 
             } else { 
@@ -341,9 +342,8 @@
             userLoginLoadingIndicator.classList.remove('hidden');
 
             try {
-                // Path for passcode configuration. Ensure 'appId' is correctly resolved.
                 const passcodeRef = doc(db, `artifacts/${appId}/public/data/passcode_config`, passcode);
-                showMessage("Firestore থেকে পাসকোড আনা হচ্ছে...", "info", 2000);
+                showMessage("Firestore থেকে পাসকোড আনা হচ্ছে...", "info", 2000, {path: passcodeRef.path});
                 const passcodeSnap = await getDoc(passcodeRef);
 
                 if (passcodeSnap.exists()) {
@@ -357,7 +357,16 @@
                         currentPasscode = passcode;
                         currentSector = passcodeData.sector;
                         
-                        if(isAdmin) { isAdmin = false; } // If admin was somehow true, reset for user view
+                        if(auth.currentUser && !auth.currentUser.isAnonymous) { // If an admin was logged in, sign them out for user view
+                            console.log("Admin was logged in, signing out for passcode user session.");
+                            await signOut(auth); // This will trigger authStateChanged, which should then call signInAnonymouslyIfNeeded
+                                                 // and eventually land on the user view if passcode logic is re-triggered or state is preserved.
+                                                 // For simplicity here, we proceed to showUserView directly, assuming anonymous session is established.
+                            isAdmin = false;
+                            // It's better to let authStateChanged handle the transition fully.
+                            // However, for immediate effect after passcode entry:
+                            await signInAnonymouslyIfNeeded(); // Ensure anonymous session for user
+                        }
                         passcodeEntry.value = ''; 
                         showUserView(); 
                         showMessage(`"${currentSector}" হিসেবে লগইন সফল হয়েছে।`, 'success', 3000);
@@ -388,9 +397,11 @@
             adminLoginButton.disabled = true;
             adminLoginLoadingIndicator.classList.remove('hidden');
             try {
-                // Sign out any anonymous user before attempting admin sign-in
                 if (auth.currentUser && auth.currentUser.isAnonymous) { 
                     console.log("Signing out anonymous user before admin login attempt.");
+                    const anonUser = auth.currentUser;
+                    // It's tricky to delete anonymous users directly without re-authentication.
+                    // Simply signing out is usually sufficient.
                     await signOut(auth); 
                 }
                 await signInWithEmailAndPassword(auth, email, password);
@@ -398,7 +409,7 @@
                 adminEmailEntry.value = ''; adminPasswordEntry.value = '';
             } catch (error) {
                 showMessage(`অ্যাডমিন লগইন ব্যর্থ: ${error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' ? 'ভুল ইমেইল অথবা পাসওয়ার্ড।' : error.message}`, 'error', 0, {error: error.message, code: error.code});
-                await signInAnonymouslyIfNeeded(); // Re-establish anonymous session for login page
+                await signInAnonymouslyIfNeeded(); 
             } finally {
                 generalLoadingIndicator.classList.add('hidden');
                 adminLoginButton.disabled = false;
@@ -410,45 +421,49 @@
         logoutButton.addEventListener('click', async () => {
             generalLoadingIndicator.classList.remove('hidden');
             const wasAdmin = isAdmin; 
+            const userToSignOut = auth.currentUser;
             try {
-                currentPasscode = null; currentSector = null; // Clear user session state
-                if (auth.currentUser && !auth.currentUser.isAnonymous) { 
+                currentPasscode = null; currentSector = null; 
+                isAdmin = false; // Reset JS admin state immediately
+
+                if (userToSignOut) { 
                     await signOut(auth); 
-                    // authStateChangedHandler will handle view transition to login and anonymous sign-in
                     showMessage(wasAdmin ? 'অ্যাডমিন সফলভাবে লগ আউট করেছেন।' : 'সফলভাবে লগ আউট করা হয়েছে।', 'info');
-                } else { 
-                    // If already anonymous or somehow no user, just reset state and show login
+                    // authStateChangedHandler will call signInAnonymouslyIfNeeded
+                } else {
+                    // Should not happen if logout button is visible, but as a fallback:
                     cart = []; renderCart();
-                    showLoginView(); 
-                    if (isAuthReady && auth.currentUser && auth.currentUser.isAnonymous) {
-                        userLoginButton.disabled = false; adminLoginButton.disabled = false;
-                    }
+                    showLoginView();
+                    await signInAnonymouslyIfNeeded(); // Ensure clean state
                     showMessage('সফলভাবে লগ আউট করা হয়েছে।', 'info');
                 }
             } catch (error) {
                  showMessage(`লগ আউট করতে সমস্যা: ${error.message}`, 'error', 0, {error: error.message});
+                 // Ensure UI is reset even on error
+                 isAdmin = false;
+                 currentPasscode = null; currentSector = null;
+                 cart = []; renderCart();
+                 showLoginView();
+                 await signInAnonymouslyIfNeeded();
             } finally {
-                isAdmin = false; 
                 generalLoadingIndicator.classList.add('hidden');
             }
         });
 
         // --- Product Management (Real-time) ---
-        // The setupInitialProducts function has been removed as per request.
-        // Products will now only be loaded from Firestore. If the collection is empty,
-        // the user will be informed that no products are available.
-
         function listenToProducts() { 
             if (unsubscribeProducts) unsubscribeProducts(); 
             productLoadingIndicator.classList.remove('hidden');
-            // Path to products collection. Ensure 'appId' is correctly resolved.
-            const productsQuery = collection(db, `artifacts/${appId}/public/data/products`);
+            const productsQueryPath = `artifacts/${appId}/public/data/products`;
+            console.log("Listening to products at path:", productsQueryPath);
+            const productsQuery = collection(db, productsQueryPath);
             unsubscribeProducts = onSnapshot(productsQuery, (snapshot) => {
                 allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderProducts(); 
                 productLoadingIndicator.classList.add('hidden');
             }, (error) => {
-                showMessage(`পণ্য আনতে সমস্যা: ${error.message}`, 'error', 0, {error: error.message});
+                console.error("Error fetching products:", error, "Path:", productsQueryPath);
+                showMessage(`পণ্য আনতে সমস্যা: ${error.message}`, 'error', 0, {error: error.message, path: productsQueryPath});
                 productListDiv.innerHTML = '<p class="text-red-500 text-center py-8">পণ্য লোড করা যায়নি। ইন্টারনেট সংযোগ পরীক্ষা করুন অথবা অ্যাডমিনের সাথে যোগাযোগ করুন।</p>';
                 productLoadingIndicator.classList.add('hidden');
             });
@@ -469,13 +484,12 @@
                 return;
             }
              if (allProducts.length === 0 && !productLoadingIndicator.classList.contains('hidden')) {
-                // Still loading, productLoadingIndicator is visible
                 return;
             }
 
             let productsToDisplayInKitchenGroup = [];
             let productsToDisplayInRestaurantGroup = [];
-            let productsToDisplayInAllSectorGroup = []; // For admin clarity or specific combined views
+            let productsToDisplayInAllSectorGroup = []; 
 
             if (isAdmin) { 
                 productsToDisplayInKitchenGroup = allProducts.filter(p => p.category === 'কিচেন ক্যাটাগরি');
@@ -500,7 +514,6 @@
                         if (productCategory === 'কিচেন ক্যাটাগরি') productsToDisplayInKitchenGroup.push(product);
                         else if (productCategory === 'রেস্টুরেন্ট ক্যাটাগরি') productsToDisplayInRestaurantGroup.push(product);
                         else if (productCategory === 'অল সেক্টর ক্যাটাগরি') {
-                             // For users, 'All Sector' products are merged into their relevant sector's main category display
                             if (currentSector === 'কিচেন সেক্টর') productsToDisplayInKitchenGroup.push(product);
                             else productsToDisplayInRestaurantGroup.push(product);
                         }
@@ -517,7 +530,7 @@
                 productsDisplayed = true;
                 renderProductGroup('রেস্টুরেন্ট ক্যাটাগরি (এবং প্রযোজ্য অল-সেক্টর)', productsToDisplayInRestaurantGroup);
             }
-             if (isAdmin && productsToDisplayInAllSectorGroup.length > 0) { // Admin might want to see 'All Sector' separately
+             if (isAdmin && productsToDisplayInAllSectorGroup.length > 0) { 
                 productsDisplayed = true;
                 renderProductGroup('অল সেক্টর ক্যাটাগরি (অ্যাডমিন ভিউ)', productsToDisplayInAllSectorGroup);
             }
@@ -526,7 +539,6 @@
             if (!productsDisplayed && allProducts.length > 0 && !isAdmin) {
                  productListDiv.innerHTML = '<p class="text-center text-gray-500 py-8">আপনার বর্তমান সেক্টরের জন্য কোনো পণ্য উপলব্ধ নেই।</p>';
             } else if (!productsDisplayed && allProducts.length === 0 && productLoadingIndicator.classList.contains('hidden')) {
-                // This case is handled by the initial check for allProducts.length === 0
                  productListDiv.innerHTML = '<p class="text-center text-gray-500 py-8">এখন কোনো পণ্য উপলব্ধ নেই। অ্যাডমিন শীঘ্রই পণ্য যোগ করবেন।</p>';
             }
         }
@@ -582,8 +594,9 @@
             const productToDelete = allProducts.find(p => p.id === productId);
             if (!productToDelete) return;
 
-            // Basic confirmation dialog (replace with a custom modal for better UX)
-            if (!confirm(`আপনি কি "${productToDelete.name}" পণ্যটি মুছে ফেলতে চান? এটি ফেরানো যাবে না।`)) {
+            // Replace with a custom modal for better UX if possible
+            const confirmation = window.confirm(`আপনি কি "${productToDelete.name}" পণ্যটি মুছে ফেলতে চান? এটি ফেরানো যাবে না।`);
+            if (!confirmation) {
                 return;
             }
             generalLoadingIndicator.classList.remove('hidden');
@@ -591,7 +604,7 @@
                 const productRef = doc(db, `artifacts/${appId}/public/data/products`, productId);
                 await deleteDoc(productRef);
                 showMessage(`পণ্য "${productToDelete.name}" সফলভাবে মুছে ফেলা হয়েছে।`, 'success');
-                // listenToProducts will refresh the list automatically
+                // The onSnapshot listener for products will automatically refresh the list.
             } catch (error) {
                 console.error("Error deleting product:", error);
                 showMessage(`পণ্য মুছতে সমস্যা: ${error.message}`, 'error', 0, {error: error.message});
@@ -652,7 +665,7 @@
         function updateCartItemQuantity(itemId, newQuantity) { 
             const item = cart.find(i => i.id === itemId);
             if (item && newQuantity > 0) item.quantity = newQuantity;
-            else if (item && newQuantity <= 0) cart = cart.filter(i => i.id !== itemId); // Remove if quantity is 0 or less
+            else if (item && newQuantity <= 0) cart = cart.filter(i => i.id !== itemId); 
             renderCart();
         }
         function removeFromCart(itemIndex) { 
@@ -683,16 +696,17 @@
                 sector: currentSector, 
                 items: orderItems, 
                 totalAmount: totalAmount, 
-                status: 'পেন্ডিং', // Initial status
+                status: 'পেন্ডিং', 
                 timestamp: serverTimestamp() 
             };
             try {
-                // Path for orders. Ensure 'appId' is correctly resolved.
-                const ordersRef = collection(db, `artifacts/${appId}/public/data/orders`);
+                const ordersRefPath = `artifacts/${appId}/public/data/orders`;
+                console.log("Placing order to path:", ordersRefPath);
+                const ordersRef = collection(db, ordersRefPath);
                 const docRef = await addDoc(ordersRef, orderData);
                 orderSuccessMessage.textContent = `অর্ডার (ID: ${docRef.id.substring(0,8)}...) সফলভাবে প্লেস করা হয়েছে! বিল: ৳${totalAmount.toFixed(2)}`;
                 orderSuccessModal.classList.remove('hidden');
-                cart = []; renderCart(); // Clear cart after successful order
+                cart = []; renderCart(); 
             } catch (error) { 
                 console.error("Error placing order:", error);
                 showMessage(`অর্ডার করতে সমস্যা: ${error.message}`, 'error', 0, {error: error.message, code: error.code, authState: debugAuthInfo});
@@ -711,34 +725,34 @@
         // --- Admin Panel: Order Management ---
         adminSectorFilter.addEventListener('change', fetchAdminOrders);
         function fetchAdminOrders() { 
-            if (!isAdmin || !auth.currentUser) return;
+            if (!isAdmin || !auth.currentUser) {
+                console.log("fetchAdminOrders skipped: isAdmin is", isAdmin, "or no currentUser.");
+                return;
+            }
             adminLoadingIndicator.classList.remove('hidden'); adminOrdersDiv.innerHTML = '<p class="text-center text-gray-500">অর্ডার লোড হচ্ছে...</p>';
             if (unsubscribeOrders) unsubscribeOrders();
             
-            // Path for orders. Ensure 'appId' is correctly resolved.
-            let ordersCollectionRef = collection(db, `artifacts/${appId}/public/data/orders`);
+            const ordersCollectionPath = `artifacts/${appId}/public/data/orders`;
+            console.log("Fetching admin orders from path:", ordersCollectionPath, "Current admin UID for rules check:", auth.currentUser.uid);
+            let ordersCollectionRef = collection(db, ordersCollectionPath);
             let ordersQuery;
             const selectedSector = adminSectorFilter.value;
 
             if (selectedSector) {
                 ordersQuery = query(ordersCollectionRef, where("sector", "==", selectedSector));
             } else {
-                ordersQuery = query(ordersCollectionRef); // No filter, get all
+                ordersQuery = query(ordersCollectionRef); 
             }
-            // Note: Firestore `orderBy` often requires a composite index.
-            // For simplicity, sorting is done client-side after fetching.
-            // If performance becomes an issue with many orders, consider server-side sorting with proper indexes.
-
+            
             unsubscribeOrders = onSnapshot(ordersQuery, (snapshot) => {
                 adminLoadingIndicator.classList.add('hidden');
                 const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                // Sort by timestamp client-side (descending, newest first)
                 orders.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
                 renderAdminOrders(orders);
             }, (error) => { 
-                console.error("Error fetching admin orders:", error);
-                showMessage(`অ্যাডমিন অর্ডার আনতে সমস্যা: ${error.message}`, 'error', 0, {error: error.message}); 
-                adminOrdersDiv.innerHTML = `<p class="text-red-500 text-center">অর্ডার আনতে সমস্যা।</p>`; 
+                console.error("Error fetching admin orders (onSnapshot):", error, "Path:", ordersCollectionPath);
+                showMessage(`অ্যাডমিন অর্ডার আনতে সমস্যা: ${error.message}`, 'error', 0, {error: error.message, path: ordersCollectionPath}); 
+                adminOrdersDiv.innerHTML = `<p class="text-red-500 text-center">অর্ডার আনতে সমস্যা। Firestore Rules চেক করুন এবং নিশ্চিত করুন যে অ্যাডমিন ইউজারের UID (${auth.currentUser?.uid}) অ্যাডমিন তালিকায় (${`artifacts/${appId}/public/data/admin_users/${auth.currentUser?.uid}`}) আছে।</p>`; 
                 adminLoadingIndicator.classList.add('hidden'); 
             });
         }
@@ -775,14 +789,15 @@
         }
         async function updateOrderStatus(orderId, newStatus) { 
             generalLoadingIndicator.classList.remove('hidden'); 
-            // Path to specific order. Ensure 'appId' is correctly resolved.
-            const orderRef = doc(db, `artifacts/${appId}/public/data/orders`, orderId);
+            const orderRefPath = `artifacts/${appId}/public/data/orders/${orderId}`;
+            console.log("Updating order status for path:", orderRefPath);
+            const orderRef = doc(db, orderRefPath);
             try {
                 await updateDoc(orderRef, { status: newStatus });
                 showMessage(`অর্ডার ${orderId.substring(0,8)}... স্ট্যাটাস "${newStatus}" হয়েছে।`, 'success');
             } catch (error) { 
                 console.error("Error updating order status:", error);
-                showMessage(`অর্ডার স্ট্যাটাস আপডেট সমস্যা: ${error.message}`, 'error', 0, {error: error.message, code: error.code});
+                showMessage(`অর্ডার স্ট্যাটাস আপডেট সমস্যা: ${error.message}`, 'error', 0, {error: error.message, code: error.code, path: orderRefPath});
             } finally { generalLoadingIndicator.classList.add('hidden'); }
         }
 
@@ -804,18 +819,19 @@
                 price, 
                 category, 
                 imageUrl: imageUrl || `https://placehold.co/300x200/E0E0E0/757575?text=${encodeURIComponent(name)}`, 
-                addedBy: auth.currentUser.uid, // Store who added the product
-                createdAt: serverTimestamp() // Store creation time
+                addedBy: auth.currentUser.uid, 
+                createdAt: serverTimestamp() 
             };
             try {
-                // Path for products. Ensure 'appId' is correctly resolved.
-                const productsRef = collection(db, `artifacts/${appId}/public/data/products`);
+                const productsRefPath = `artifacts/${appId}/public/data/products`;
+                console.log("Adding product to path:", productsRefPath);
+                const productsRef = collection(db, productsRefPath);
                 await addDoc(productsRef, newProduct);
                 showMessage(`পণ্য "${name}" যোগ করা হয়েছে।`, 'success');
                 addProductForm.reset(); 
             } catch (error) { 
                 console.error("Error adding product:", error);
-                showMessage(`পণ্য যোগ করতে সমস্যা: ${error.message}`, 'error', 0, {error: error.message, code: error.code});
+                showMessage(`পণ্য যোগ করতে সমস্যা: ${error.message}`, 'error', 0, {error: error.message, code: error.code, path: productsRefPath});
             } finally { addProductButton.disabled = false; addProductLoadingIndicator.classList.add('hidden'); }
         });
 
@@ -826,7 +842,6 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #a8a8a8; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #787878; }
-        /* Hide number input spinners */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance:textfield; }
@@ -888,8 +903,7 @@
                     <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     <p class="text-gray-500 mt-2">পণ্য লোড হচ্ছে...</p>
                 </div>
-                <div id="productList" class="custom-scrollbar">
-                    </div>
+                <div id="productList" class="custom-scrollbar"></div>
             </div>
             <div class="bg-white p-4 md:p-6 rounded-lg shadow-xl">
                 <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6 border-b-2 border-green-500 pb-2">শপিং কার্ট</h2>
@@ -900,8 +914,7 @@
                         <th class="py-3 px-4 text-right text-sm font-semibold text-gray-600 uppercase">একক মূল্য</th>
                         <th class="py-3 px-4 text-right text-sm font-semibold text-gray-600 uppercase">মোট</th>
                         <th class="py-3 px-4 text-center text-sm font-semibold text-gray-600 uppercase">অ্যাকশন</th>
-                    </tr></thead><tbody id="cartItems">
-                        </tbody></table>
+                    </tr></thead><tbody id="cartItems"></tbody></table>
                 </div>
                 <div class="flex flex-col sm:flex-row justify-between items-center border-t pt-4">
                     <p class="text-xl font-semibold text-gray-700 mb-4 sm:mb-0">সর্বমোট: <span class="text-green-600">৳<span id="cartTotal">0.00</span></span></p>
@@ -932,9 +945,10 @@
                     </button>
                 </form>
             </div>
-             <div class="bg-white p-4 md:p-6 rounded-lg shadow-xl">
+            <div class="bg-white p-4 md:p-6 rounded-lg shadow-xl">
                 <h3 class="text-xl md:text-2xl font-bold text-gray-800 mb-6 border-b-2 border-rose-500 pb-2">সকল পণ্য (অ্যাডমিন)</h3>
-                 <div id="adminProductListLoadingIndicator" class="hidden text-center py-4"> <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                 <div id="adminProductListLoadingIndicator" class="hidden text-center py-4"> 
+                    <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     <p class="text-gray-500 mt-2">পণ্য লোড হচ্ছে...</p>
                 </div>
                 </div>
@@ -951,8 +965,7 @@
                     <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     <p class="text-gray-500 mt-2">অর্ডার লোড হচ্ছে...</p>
                 </div>
-                <div id="adminOrders" class="overflow-x-auto custom-scrollbar">
-                    </div>
+                <div id="adminOrders" class="overflow-x-auto custom-scrollbar"></div>
             </div>
         </section>
     </main>
@@ -960,8 +973,7 @@
     <div id="generalLoadingIndicator" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-[110]">
         <svg class="animate-spin h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
     </div>
-    <div id="messageDiv" class="hidden fixed bottom-5 right-5 p-3 rounded-lg shadow-xl text-white text-xs sm:text-sm z-[100] cursor-pointer opacity-0 translate-y-10 max-w-xs sm:max-w-sm md:max-w-md overflow-y-auto max-h-48 custom-scrollbar">
-        </div>
+    <div id="messageDiv" class="hidden fixed bottom-5 right-5 p-3 rounded-lg shadow-xl text-white text-xs sm:text-sm z-[100] cursor-pointer opacity-0 translate-y-10 max-w-xs sm:max-w-sm md:max-w-md overflow-y-auto max-h-48 custom-scrollbar"></div>
     <div id="orderSuccessModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full modal z-[90]">
         <div class="relative top-1/4 mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white modal-content">
             <div class="mt-3 text-center">
