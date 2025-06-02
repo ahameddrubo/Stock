@@ -1,278 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Khamer Restaurant - Warehouse Management</title>
+    <title>গুদাম ম্যানেজমেন্ট সিস্টেম</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lucide-static@latest/dist/lucide.min.js"></script>
-    <style>
-        /* Default to Light Mode */
-        :root {
-            --bg-primary: #ffffff; /* white */
-            --bg-secondary: #f9fafb; /* gray-50 */
-            --bg-accent: #eff6ff; /* blue-50 */
-            --text-primary: #1f2937; /* gray-800 */
-            --text-secondary: #6b7280; /* gray-500 */
-            --border-primary: #e5e7eb; /* gray-200 */
-            --border-secondary: #d1d5db; /* gray-300 */
-            --brand-primary: #2563eb; /* blue-600 */
-            --brand-hover: #1d4ed8; /* blue-700 */
-            --input-bg: #ffffff;
-            --input-border: #d1d5db;
-            --card-bg: #ffffff;
-            --modal-bg: #ffffff;
-            --shadow-color: rgba(0, 0, 0, 0.1);
-        }
-
-        html.dark {
-            --bg-primary: #111827; /* gray-900 */
-            --bg-secondary: #1f2937; /* gray-800 */
-            --bg-accent: #374151; /* gray-700 */
-            --text-primary: #f3f4f6; /* gray-100 */
-            --text-secondary: #9ca3af; /* gray-400 */
-            --border-primary: #374151; /* gray-700 */
-            --border-secondary: #4b5563; /* gray-600 */
-            --brand-primary: #3b82f6; /* blue-500 */
-            --brand-hover: #2563eb; /* blue-600 */
-            --input-bg: #374151; /* gray-700 */
-            --input-border: #4b5563; /* gray-600 */
-            --card-bg: #1f2937; /* gray-800 */
-            --modal-bg: #1f2937; /* gray-800 */
-            --shadow-color: rgba(0, 0, 0, 0.3);
-        }
-        body {
-            background-color: var(--bg-secondary);
-            color: var(--text-primary);
-            font-family: 'Inter', sans-serif; /* Assuming Inter is a preferred font */
-            transition: background-color 0.3s, color 0.3s;
-        }
-        /* Tailwind Customization for dynamic properties */
-        .bg-primary { background-color: var(--bg-primary); }
-        .bg-secondary { background-color: var(--bg-secondary); }
-        .bg-accent { background-color: var(--bg-accent); }
-        .text-primary { color: var(--text-primary); }
-        .text-secondary { color: var(--text-secondary); }
-        .border-primary { border-color: var(--border-primary); }
-        .border-secondary { border-color: var(--border-secondary); }
-        .brand-primary { background-color: var(--brand-primary); color: white; }
-        .brand-primary:hover { background-color: var(--brand-hover); }
-        .text-brand-primary { color: var(--brand-primary); }
-        .input-styled { background-color: var(--input-bg); border-color: var(--input-border); color: var(--text-primary); }
-        .card { background-color: var(--card-bg); box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -1px var(--shadow-color); }
-        .modal-content { background-color: var(--modal-bg); }
-
-        /* For Lucide icons */
-        .lucide {
-            width: 1em;
-            height: 1em;
-            stroke-width: 2;
-            vertical-align: middle;
-        }
-        /* RTL support for icons */
-        [dir="rtl"] .lucide.mr-1 { margin-left: 0.25rem; margin-right: 0; }
-        [dir="rtl"] .lucide.ml-1 { margin-right: 0.25rem; margin-left: 0; }
-        [dir="rtl"] .lucide.mr-2 { margin-left: 0.5rem; margin-right: 0; }
-        [dir="rtl"] .lucide.ml-2 { margin-right: 0.5rem; margin-left: 0; }
-        
-        /* Custom scrollbar for better aesthetics */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--bg-secondary);
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--border-secondary);
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-secondary);
-        }
-        /* General button styling */
-        .btn {
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            transition: background-color 0.2s, box-shadow 0.2s;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            cursor: pointer;
-        }
-        .btn-primary {
-            background-color: var(--brand-primary);
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: var(--brand-hover);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        }
-        .btn-secondary {
-            background-color: var(--bg-accent);
-            color: var(--brand-primary);
-            border: 1px solid var(--brand-primary);
-        }
-        .btn-secondary:hover {
-            background-color: var(--brand-primary);
-            color: white;
-        }
-        .btn-danger {
-            background-color: #ef4444; /* red-500 */
-            color: white;
-        }
-        .btn-danger:hover {
-            background-color: #dc2626; /* red-600 */
-        }
-        .btn-success {
-            background-color: #22c55e; /* green-500 */
-            color: white;
-        }
-        .btn-success:hover {
-            background-color: #16a34a; /* green-600 */
-        }
-        .btn-warning {
-            background-color: #f59e0b; /* amber-500 */
-            color: white;
-        }
-        .btn-warning:hover {
-            background-color: #d97706; /* amber-600 */
-        }
-        .btn-icon {
-            padding: 0.5rem;
-        }
-        .low-stock-alert {
-            border: 2px solid #ef4444; /* red-500 */
-        }
-        .low-stock-text {
-            color: #ef4444; /* red-500 */
-            font-weight: bold;
-        }
-        /* Notification styles */
-        #notification-banner {
-            position: fixed;
-            top: 80px; /* Below navbar */
-            right: 20px;
-            z-index: 1000;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            color: white;
-            box-shadow: 0 4px 12px var(--shadow-color);
-            transition: opacity 0.3s, transform 0.3s;
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-        #notification-banner.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        #notification-banner.success { background-color: #22c55e; } /* green-500 */
-        #notification-banner.error { background-color: #ef4444; } /* red-500 */
-        #notification-banner.info { background-color: #3b82f6; } /* blue-500 */
-
-        /* Modal styles */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background-color: rgba(0, 0, 0, 0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
-            padding: 1rem;
-        }
-        .modal-container {
-            background-color: var(--modal-bg);
-            padding: 1.5rem;
-            border-radius: 0.75rem;
-            box-shadow: 0 10px 25px var(--shadow-color);
-            width: 100%;
-            max-width: 500px; /* Default max-width */
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        /* Spinner */
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border-left-color: var(--brand-primary);
-            animation: spin 1s ease infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .loading-overlay {
-            position: absolute;
-            inset: 0;
-            background-color: rgba(255, 255, 255, 0.7); /* Light overlay */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-        }
-        html.dark .loading-overlay {
-             background-color: rgba(0, 0, 0, 0.7); /* Dark overlay */
-        }
-    </style>
-</head>
-<body>
-    <nav id="navbar" class="bg-primary shadow-md sticky top-0 z-40 py-3 px-4">
-        </nav>
-
-    <main id="main-content" class="p-4 md:p-8 min-h-[calc(100vh-150px)]">
-        <div class="flex items-center justify-center h-64">
-            <div class="spinner"></div> <span class="ml-3 text-lg">Loading...</span>
-        </div>
-    </main>
-
-    <footer id="footer" class="bg-secondary text-center py-4 border-t border-primary">
-        </footer>
-
-    <div id="modal-placeholder"></div>
-
-    <div id="notification-banner">
-        <span id="notification-message"></span>
-    </div>
-
     <script type="module">
-        // Firebase App (the core Firebase SDK) is always required and must be listed first
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // Add SDKs for Firebase products that you want to use
         import { 
             getAuth, 
-            signInWithEmailAndPassword, 
-            signOut, 
-            onAuthStateChanged,
-            signInAnonymously,
+            signInAnonymously, 
+            onAuthStateChanged, 
+            signInWithEmailAndPassword,
+            signOut,
             signInWithCustomToken
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { 
             getFirestore, 
             collection, 
+            doc, 
             addDoc, 
             getDocs, 
-            doc, 
-            updateDoc, 
-            deleteDoc, 
+            onSnapshot, 
             query, 
             where, 
-            onSnapshot,
-            writeBatch,
-            setDoc,
-            getDoc,
-            Timestamp,
-            setLogLevel
+            serverTimestamp, 
+            updateDoc,
+            getDoc 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Global Variables and Configuration ---
         // Updated Firebase Configuration
-        const firebaseConfig = {
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyCa_bwrAn7_QImUbnrqj0wSHrWqspFiNBE",
             authDomain: "stock-mantain-d6427.firebaseapp.com",
             projectId: "stock-mantain-d6427",
@@ -281,1194 +39,757 @@
             appId: "1:150865127526:web:bb39866ca4acd9fbbb25a7",
             measurementId: "G-1P1LMBLZ88"
         };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.appId; // Use appId from config if __app_id is not available
         
-        // Use projectId for Firestore path if __app_id is not defined
-        const appIdForPath = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
+        let currentUserId = null;
+        let currentPasscode = null; 
+        let currentSector = null;   
+        let isAdmin = false;
+        let cart = [];
+        let products = []; 
+        let unsubscribeOrders = null; 
+        let unsubscribeProducts = null;
+
+        const loginForms = document.getElementById('loginForms');
+        const userPasscodeLogin = document.getElementById('userPasscodeLogin');
+        const adminEmailLogin = document.getElementById('adminEmailLogin');
         
-        let db, auth;
-        let currentLanguage = 'en';
-        let currentTheme = localStorage.getItem('theme') || 'light';
-        let currentPage = 'user'; // 'user', 'adminLogin', 'adminDashboard'
-        let currentUser = null;
-        let userId = null;
-        let isAuthReady = false;
+        const userSection = document.getElementById('userSection');
+        const adminSection = document.getElementById('adminSection');
+        const productListDiv = document.getElementById('productList');
+        const cartItemsDiv = document.getElementById('cartItems');
+        const cartTotalSpan = document.getElementById('cartTotal');
+        const adminOrdersDiv = document.getElementById('adminOrders');
+        
+        const passcodeEntry = document.getElementById('passcodeEntry');
+        const userLoginButton = document.getElementById('userLoginButton');
+        const adminEmailEntry = document.getElementById('adminEmailEntry');
+        const adminPasswordEntry = document.getElementById('adminPasswordEntry');
+        const adminLoginButton = document.getElementById('adminLoginButton');
 
-        let productsCache = [];
-        let ordersCache = [];
-        let cart = JSON.parse(localStorage.getItem('khamerCart')) || [];
+        const logoutButton = document.getElementById('logoutButton');
+        const placeOrderButton = document.getElementById('placeOrderButton');
+        const messageDiv = document.getElementById('messageDiv');
+        const currentViewSpan = document.getElementById('currentViewSpan');
+        const adminSectorFilter = document.getElementById('adminSectorFilter');
+        
+        const loadingIndicator = document.getElementById('loadingIndicator'); 
+        const adminLoadingIndicator = document.getElementById('adminLoadingIndicator'); 
+        const productLoadingIndicator = document.getElementById('productLoadingIndicator'); 
+        
+        const orderSuccessModal = document.getElementById('orderSuccessModal');
+        const closeOrderSuccessModalButton = document.getElementById('closeOrderSuccessModalButton');
+        const orderSuccessMessage = document.getElementById('orderSuccessMessage');
 
-        // Firestore collection paths using appIdForPath
-        const productsCollectionPath = `/artifacts/${appIdForPath}/public/data/products`;
-        const ordersCollectionPath = `/artifacts/${appIdForPath}/public/data/orders`;
+        const addProductForm = document.getElementById('addProductForm');
+        const productNameInput = document.getElementById('productName');
+        const productDescriptionInput = document.getElementById('productDescription');
+        const productPriceInput = document.getElementById('productPrice');
+        const productCategoryInput = document.getElementById('productCategory');
+        const productImageUrlInput = document.getElementById('productImageUrl');
+        const addProductButton = document.getElementById('addProductButton');
+        const addProductLoadingIndicator = document.getElementById('addProductLoadingIndicator');
 
-        // Translations (Bangla and English)
-        const translations = {
-            en: {
-                appName: "Khamer Restaurant", // App name remains in English as requested
-                restaurantSector: "Restaurant Sector",
-                kitchenSector: "Kitchen Sector",
-                addToCart: "Add to Cart",
-                placeOrder: "Place Order",
-                adminPanel: "Admin Panel",
-                login: "Login",
-                email: "Email",
-                password: "Password",
-                manageStock: "Manage Stock",
-                addNewProduct: "Add New Product",
-                productNameEn: "Product Name (EN)",
-                productNameAr: "Product Name (AR)", // Kept AR for consistency with previous structure
-                category: "Category",
-                stock: "Stock",
-                lowStockThreshold: "Low Stock Alert At",
-                saveProduct: "Save Product",
-                updateProduct: "Update Product",
-                editProduct: "Edit Product",
-                currentStock: "Current Stock",
-                orders: "Orders",
-                viewOrders: "View Orders",
-                product: "Product",
-                quantity: "Quantity",
-                status: "Status",
-                pending: "Pending",
-                confirmed: "Confirmed",
-                confirmOrder: "Confirm Order",
-                noProducts: "No products available in this sector.",
-                noProductsFound: "No products match your criteria.",
-                noOrders: "No orders yet.",
-                cart: "Cart",
-                emptyCart: "Your cart is empty.",
-                totalItems: "Total Items",
-                logout: "Logout",
-                dashboard: "Dashboard",
-                selectCategory: "Select Category",
-                restaurant: "Restaurant",
-                kitchen: "Kitchen",
-                allProducts: "All Products",
-                productManagement: "Product Management",
-                orderManagement: "Order Management",
-                actions: "Actions",
-                edit: "Edit",
-                delete: "Delete",
-                filterByCategory: "Filter by Category:",
-                items: "items",
-                searchProducts: "Search products...",
-                appDescription: "Efficiently manage your restaurant's warehouse inventory.",
-                loginToAdmin: "Login to Admin Panel",
-                orderPlacedSuccessfully: "Order placed successfully!",
-                errorPlacingOrder: "Error placing order. Please try again.",
-                productAddedSuccess: "Product added successfully!",
-                productUpdatedSuccess: "Product updated successfully!",
-                productDeletedSuccess: "Product deleted successfully!",
-                confirmDeleteProductTitle: "Confirm Delete",
-                confirmDeleteProductMessage: "Are you sure you want to delete this product?",
-                confirmOrderDialogTitle: "Confirm Order",
-                confirmOrderConfirmation: "Are you sure you want to confirm this order? Stock will be updated.",
-                stockUpdated: "Stock updated.",
-                insufficientStock: "Insufficient stock for some items. Order cannot be fully confirmed.",
-                loginSuccess: "Login successful!",
-                loginFailed: "Login failed. Check credentials.",
-                logoutSuccess: "Logged out successfully.",
-                errorFetchingProducts: "Error fetching products.",
-                errorFetchingOrders: "Error fetching orders.",
-                errorSavingProduct: "Error saving product.",
-                errorDeletingProduct: "Error deleting product.",
-                errorConfirmingOrder: "Error confirming order.",
-                productNameRequired: "Product names (EN and AR) are required.",
-                loading: "Loading...",
-                close: "Close",
-                cancel: "Cancel",
-                confirm: "Confirm",
-                userIdLabel: "User ID",
-                theme: "Theme",
-                light: "Light",
-                dark: "Dark",
-                date: "Date",
-                requested: "Requested",
-                available: "Available",
-                productNotFound: "Product not found.",
-                orderId: "Order ID",
-                clearCart: "Clear Cart",
-                cartCleared: "Cart cleared.",
-                viewCart: "View Cart",
-                continueShopping: "Continue Shopping",
-                price: "Price", 
-                totalPrice: "Total Price", 
-                stockLevel: "Stock Level",
-                categoryFilterAll: "All Categories",
-                outOfStock: "Out of Stock",
-                itemOutOfStock: "Item is out of stock.",
-                maxStockReached: "Cannot add more than available stock.",
-                quantityCappedAtStock: "Quantity capped at available stock",
-            },
-            ar: { // Arabic translations
-                appName: "Khamer Restaurant", 
-                restaurantSector: "قسم المطعم",
-                kitchenSector: "قسم المطبخ",
-                addToCart: "أضف إلى السلة",
-                placeOrder: "إتمام الطلب",
-                adminPanel: "لوحة الإدارة",
-                login: "تسجيل الدخول",
-                email: "البريد الإلكتروني",
-                password: "كلمة المرور",
-                manageStock: "إدارة المخزون",
-                addNewProduct: "إضافة منتج جديد",
-                productNameEn: "اسم المنتج (EN)",
-                productNameAr: "اسم المنتج (AR)",
-                category: "الفئة",
-                stock: "المخزون",
-                lowStockThreshold: "تنبيه انخفاض المخزون عند",
-                saveProduct: "حفظ المنتج",
-                updateProduct: "تحديث المنتج",
-                editProduct: "تعديل المنتج",
-                currentStock: "المخزون الحالي",
-                orders: "الطلبات",
-                viewOrders: "عرض الطلبات",
-                product: "المنتج",
-                quantity: "الكمية",
-                status: "الحالة",
-                pending: "قيد الانتظار",
-                confirmed: "مؤكد",
-                confirmOrder: "تأكيد الطلب",
-                noProducts: "لا توجد منتجات متوفرة في هذا القسم.",
-                noProductsFound: "لا توجد منتجات تطابق معاييرك.",
-                noOrders: "لا توجد طلبات حتى الآن.",
-                cart: "سلة التسوق",
-                emptyCart: "سلة التسوق فارغة.",
-                totalItems: "إجمالي العناصر",
-                logout: "تسجيل الخروج",
-                dashboard: "لوحة التحكم",
-                selectCategory: "اختر الفئة",
-                restaurant: "مطعم",
-                kitchen: "مطبخ",
-                allProducts: "جميع المنتجات",
-                productManagement: "إدارة المنتجات",
-                orderManagement: "إدارة الطلبات",
-                actions: "الإجراءات",
-                edit: "تعديل",
-                delete: "حذف",
-                filterByCategory: "تصفية حسب الفئة:",
-                items: "عناصر",
-                searchProducts: "ابحث عن المنتجات...",
-                appDescription: "إدارة مخزون مستودع مطعمك بكفاءة.",
-                loginToAdmin: "تسجيل الدخول إلى لوحة الإدارة",
-                orderPlacedSuccessfully: "تم تقديم الطلب بنجاح!",
-                errorPlacingOrder: "خطأ في تقديم الطلب. يرجى المحاولة مرة أخرى.",
-                productAddedSuccess: "تمت إضافة المنتج بنجاح!",
-                productUpdatedSuccess: "تم تحديث المنتج بنجاح!",
-                productDeletedSuccess: "تم حذف المنتج بنجاح!",
-                confirmDeleteProductTitle: "تأكيد الحذف",
-                confirmDeleteProductMessage: "هل أنت متأكد أنك تريد حذف هذا المنتج؟",
-                confirmOrderDialogTitle: "تأكيد الطلب",
-                confirmOrderConfirmation: "هل أنت متأكد أنك تريد تأكيد هذا الطلب؟ سيتم تحديث المخزون.",
-                stockUpdated: "تم تحديث المخزون.",
-                insufficientStock: "مخزون غير كاف لبعض العناصر. لا يمكن تأكيد الطلب بالكامل.",
-                loginSuccess: "تم تسجيل الدخول بنجاح!",
-                loginFailed: "فشل تسجيل الدخول. تحقق من البيانات.",
-                logoutSuccess: "تم تسجيل الخروج بنجاح.",
-                errorFetchingProducts: "خطأ في جلب المنتجات.",
-                errorFetchingOrders: "خطأ في جلب الطلبات.",
-                errorSavingProduct: "خطأ في حفظ المنتج.",
-                errorDeletingProduct: "خطأ في حذف المنتج.",
-                errorConfirmingOrder: "خطأ في تأكيد الطلب.",
-                productNameRequired: "أسماء المنتج (EN و AR) مطلوبة.",
-                loading: "جار التحميل...",
-                close: "إغلاق",
-                cancel: "إلغاء",
-                confirm: "تأكيد",
-                userIdLabel: "معرف المستخدم",
-                theme: "المظهر",
-                light: "فاتح",
-                dark: "داكن",
-                date: "التاريخ",
-                requested: "مطلوب",
-                available: "متوفر",
-                productNotFound: "المنتج غير موجود.",
-                orderId: "رقم الطلب",
-                clearCart: "إفراغ السلة",
-                cartCleared: "تم إفراغ السلة.",
-                viewCart: "عرض السلة",
-                continueShopping: "متابعة التسوق",
-                price: "السعر",
-                totalPrice: "السعر الإجمالي",
-                stockLevel: "مستوى المخزون",
-                categoryFilterAll: "جميع الفئات",
-                outOfStock: "إنتهى من المخزن",
-                itemOutOfStock: "هذا المنتج غير متوفر حالياً.",
-                maxStockReached: "لا يمكن إضافة كمية أكبر من المتوفر في المخزون.",
-                quantityCappedAtStock: "تم تحديد الكمية حسب المخزون المتوفر",
+        // --- Authentication and Initialization ---
+        async function initializeAppSession() {
+            onAuthStateChanged(auth, authStateChangedHandler); 
+
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                try {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } catch (error) {
+                    console.error("Error with custom token sign-in:", error);
+                    if (!auth.currentUser) { 
+                        await signInAnonymouslyIfNeeded();
+                    }
+                }
+            } else {
+                 await signInAnonymouslyIfNeeded();
             }
-        };
+        }
 
-        // --- Helper Functions ---
-        const $ = (selector) => document.querySelector(selector);
-        const $$ = (selector) => document.querySelectorAll(selector);
-        const t = (key) => translations[currentLanguage][key] || key;
-        const createIcon = (iconName, classes = "") => `<i data-lucide="${iconName}" class="${classes}"></i>`;
+        async function signInAnonymouslyIfNeeded() {
+            if (!auth.currentUser) {
+                try {
+                    await signInAnonymously(auth);
+                    console.log("Signed in anonymously for initial session.");
+                } catch (error) {
+                     console.error("Error during anonymous sign-in:", error);
+                     showMessage('প্রাথমিক সেশনে সমস্যা হয়েছে। পৃষ্ঠা রিলোড করুন।', 'error', 0); // 0 for indefinite
+                }
+            }
+        }
+        
+        async function authStateChangedHandler(user) {
+            loadingIndicator.classList.remove('hidden'); // Show general loading while auth state resolves
 
-        // --- Initialization ---
-        document.addEventListener('DOMContentLoaded', () => {
-            try {
-                const firebaseApp = initializeApp(firebaseConfig);
-                db = getFirestore(firebaseApp);
-                auth = getAuth(firebaseApp);
-                setLogLevel('debug'); // For development, shows detailed logs
+            if (user) {
+                currentUserId = user.uid;
+                console.log("Auth State: UID:", currentUserId, "Anonymous:", user.isAnonymous, "Email:", user.email);
+                isAdmin = false; 
+
+                if (!user.isAnonymous && user.email) { 
+                    const adminUserRef = doc(db, `artifacts/${appId}/public/data/admin_users`, user.uid);
+                    try {
+                        const adminDocSnap = await getDoc(adminUserRef);
+                        if (adminDocSnap.exists()) {
+                            isAdmin = true;
+                            console.log("Admin user confirmed:", user.uid);
+                            showAdminView();
+                        } else {
+                            console.log("User signed in with email but is not an admin:", user.uid);
+                            await signOut(auth); 
+                            showMessage('আপনি অ্যাডমিন হিসেবে অনুমোদিত নন।', 'error');
+                            // onAuthStateChanged will fire again with user=null
+                            loadingIndicator.classList.add('hidden');
+                            return; 
+                        }
+                    } catch (error) {
+                        console.error("Error checking admin status:", error);
+                        await signOut(auth); 
+                        showMessage('অ্যাডমিন স্ট্যাটাস যাচাই করতে সমস্যা হয়েছে।', 'error');
+                        loadingIndicator.classList.add('hidden');
+                        return;
+                    }
+                } else if (user.isAnonymous) { 
+                    if (currentPasscode) {
+                        showUserView();
+                    } else {
+                        showLoginView();
+                    }
+                } else { 
+                    showLoginView();
+                }
                 
-                applyTheme(); // Apply theme early
-                initializeAuthAndListeners();
-                renderNavbar(); // Initial render of navbar
-                renderFooter(); // Initial render of footer
-                // Initial page rendering will be handled by onAuthStateChanged
+                await setupInitialProducts(); 
+                listenToProducts();
+
+            } else { 
+                console.log("User is signed out.");
+                currentUserId = null;
+                isAdmin = false;
+                currentPasscode = null; 
+                currentSector = null;
+                cart = []; 
+                renderCart();
+                showLoginView();
+                if (unsubscribeProducts) { unsubscribeProducts(); unsubscribeProducts = null; }
+                if (unsubscribeOrders) { unsubscribeOrders(); unsubscribeOrders = null; }
+            }
+            loadingIndicator.classList.add('hidden'); // Hide general loading
+        }
+        
+        window.onload = initializeAppSession;
+
+        // --- View Management ---
+        function showLoginView() {
+            loginForms.classList.remove('hidden');
+            userSection.classList.add('hidden');
+            adminSection.classList.add('hidden');
+            logoutButton.classList.add('hidden');
+            currentViewSpan.textContent = 'লগইন করুন';
+            if (unsubscribeOrders) { 
+                unsubscribeOrders();
+                unsubscribeOrders = null;
+            }
+        }
+
+        function showUserView() {
+            loginForms.classList.add('hidden');
+            userSection.classList.remove('hidden');
+            adminSection.classList.add('hidden');
+            logoutButton.classList.remove('hidden');
+            currentViewSpan.textContent = `স্বাগতম! আপনার বর্তমান সেক্টর: ${currentSector}`;
+        }
+
+        function showAdminView() {
+            loginForms.classList.add('hidden');
+            userSection.classList.add('hidden');
+            adminSection.classList.remove('hidden');
+            logoutButton.classList.remove('hidden');
+            currentViewSpan.textContent = `অ্যাডমিন প্যানেল (ব্যবহারকারী: ${auth.currentUser.email || auth.currentUser.uid.substring(0,10)+'...' })`;
+            fetchAdminOrders(); 
+        }
+        
+        // --- User (Passcode) Login ---
+        userLoginButton.addEventListener('click', () => {
+            const passcode = passcodeEntry.value.trim();
+            if (!passcode) {
+                showMessage('অনুগ্রহ করে পাসকোড প্রবেশ করান।', 'error');
+                return;
+            }
+
+            if (!auth.currentUser || (auth.currentUser && !auth.currentUser.isAnonymous && !isAdmin)) {
+                 console.warn("Passcode login attempt without clear anonymous session or while non-admin email user is signed in. This might indicate an issue.");
+            }
+
+            currentPasscode = passcode; 
+
+            if (passcode === 'Khamer1') currentSector = 'কিচেন সেক্টর';
+            else if (passcode === 'Khamer2') currentSector = 'পুরুষ সেক্টর';
+            else if (passcode === 'Khamer3') currentSector = 'ফ্যামিলি সেক্টর';
+            else {
+                showMessage('ভুল পাসকোড। অনুগ্রহ করে সঠিক পাসকোড দিন।', 'error');
+                currentPasscode = null;
+                currentSector = null;
+                return;
+            }
+            
+            if(isAdmin) { 
+                console.error("Admin flag true during passcode login. Resetting.");
+                isAdmin = false; 
+            }
+            passcodeEntry.value = ''; 
+            showUserView();
+            showMessage(`"${currentSector}" হিসেবে লগইন সফল হয়েছে।`, 'success');
+        });
+
+        // --- Admin (Email/Password) Login ---
+        adminLoginButton.addEventListener('click', async () => {
+            const email = adminEmailEntry.value.trim();
+            const password = adminPasswordEntry.value.trim();
+
+            if (!email || !password) {
+                showMessage('অনুগ্রহ করে অ্যাডমিন ইমেইল এবং পাসওয়ার্ড দিন।', 'error');
+                return;
+            }
+            
+            loadingIndicator.classList.remove('hidden');
+            try {
+                if (auth.currentUser && auth.currentUser.isAnonymous) {
+                    await signOut(auth); 
+                }
+                await signInWithEmailAndPassword(auth, email, password);
+                adminEmailEntry.value = '';
+                adminPasswordEntry.value = '';
             } catch (error) {
-                console.error("Error initializing Firebase or application:", error);
-                $('#main-content').innerHTML = `<p class="text-red-500 text-center text-xl p-8">Application failed to initialize. Please check console for errors.</p>`;
+                console.error("Admin login error:", error);
+                showMessage(`অ্যাডমিন লগইন ব্যর্থ: ${error.code === 'auth/invalid-credential' ? 'ভুল ইমেইল অথবা পাসওয়ার্ড।' : error.message}`, 'error');
+                await signInAnonymouslyIfNeeded();
+            } finally {
+                loadingIndicator.classList.add('hidden');
             }
         });
 
-        async function initializeAuthAndListeners() {
-            try {
-                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                    console.log("Signed in with custom token.");
-                } else {
-                     await signInAnonymously(auth);
-                    console.log("Signed in anonymously as fallback.");
+        // --- Logout ---
+        logoutButton.addEventListener('click', async () => {
+            loadingIndicator.classList.remove('hidden');
+            const wasAdmin = isAdmin; 
+
+            if (auth.currentUser && !auth.currentUser.isAnonymous) { 
+                try {
+                    await signOut(auth); 
+                    showMessage(wasAdmin ? 'অ্যাডমিন সফলভাবে লগ আউট করেছেন।' : 'সফলভাবে লগ আউট করা হয়েছে।', 'info');
+                } catch (error) {
+                    console.error("Sign out error:", error);
+                    showMessage(`লগ আউট করতে সমস্যা: ${error.message}`, 'error');
                 }
-            } catch (error) {
-                console.error("Error during initial sign-in:", error);
-                 try {
-                    await signInAnonymously(auth);
-                    console.log("Signed in anonymously after custom token failure.");
-                } catch (anonError) {
-                    console.error("Error during anonymous sign-in fallback:", anonError);
-                }
-            }
-
-            onAuthStateChanged(auth, (user) => {
-                currentUser = user;
-                if (user) {
-                    userId = user.uid;
-                    if(user.isAnonymous) {
-                        // Keep track of anonymous user ID if needed, or use UID directly
-                        localStorage.setItem('anonymousUserId', user.uid);
-                    } else {
-                        // Logged-in admin
-                        localStorage.removeItem('anonymousUserId'); 
-                    }
-                } else {
-                    // No user, could be after sign out, try to get/set an anonymous ID
-                    userId = localStorage.getItem('anonymousUserId') || crypto.randomUUID();
-                    if (!localStorage.getItem('anonymousUserId')) {
-                        localStorage.setItem('anonymousUserId', userId);
-                    }
-                }
-
-
-                isAuthReady = true;
-                console.log("Auth state changed. User:", user, "User ID for Firestore ops:", userId);
-                
-                renderNavbar(); 
-                navigateToCurrentPage();
-                fetchProducts(); 
-                if (currentUser && !currentUser.isAnonymous) { 
-                    fetchOrders(); 
-                }
-            });
-        }
-        
-        function navigateToCurrentPage() {
-            if (!isAuthReady) {
-                 $('#main-content').innerHTML = `<div class="flex items-center justify-center h-64"><div class="spinner"></div> <span class="ml-3 text-lg">${t('loading')}</span></div>`;
-                 return;
-            }
-            console.log("Navigating to page:", currentPage, "User:", currentUser);
-            if (currentPage === 'user') showUserPage();
-            else if (currentPage === 'adminLogin') showAdminLoginPage();
-            else if (currentPage === 'adminDashboard' && currentUser && !currentUser.isAnonymous) showAdminDashboardPage();
-            else if (currentPage === 'adminDashboard' && (!currentUser || currentUser.isAnonymous)) {
-                currentPage = 'adminLogin'; 
-                showAdminLoginPage();
-            }
-            else showUserPage(); 
-            updateActiveNavLink();
-            lucide.createIcons(); 
-        }
-
-
-        // --- Language and Theme ---
-        function toggleLanguage() {
-            currentLanguage = currentLanguage === 'en' ? 'ar' : 'en';
-            document.documentElement.lang = currentLanguage;
-            document.documentElement.dir = currentLanguage === 'ar' ? 'rtl' : 'ltr';
-            renderAll();
-        }
-
-        function applyTheme() {
-            if (currentTheme === 'dark') {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-        }
-
-        function toggleTheme() {
-            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-            localStorage.setItem('theme', currentTheme);
-            applyTheme();
-            renderNavbar(); 
-        }
-        
-        function renderAll() {
-            renderNavbar();
-            renderFooter();
-            navigateToCurrentPage(); 
-        }
-
-        // --- UI Rendering ---
-        function renderNavbar() {
-            const nav = $('#navbar');
-            if (!nav) return;
-            nav.innerHTML = `
-                <div class="container mx-auto flex flex-wrap items-center justify-between">
-                    <h1 class="text-2xl font-bold text-brand-primary">Khamer Restaurant</h1>
-                    <div class="flex items-center space-x-2 rtl:space-x-reverse mt-2 sm:mt-0">
-                        <button id="nav-user-view" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-secondary hover:text-primary">${t('allProducts')}</button>
-                        ${currentUser && !currentUser.isAnonymous ? `
-                            <button id="nav-admin-dashboard" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-secondary hover:text-primary flex items-center">${createIcon('user-cog', 'mr-1 rtl:ml-1')} ${t('adminPanel')}</button>
-                            <button id="logout-btn" class="px-3 py-2 rounded-md text-sm font-medium text-red-500 hover:text-red-700 flex items-center">${createIcon('log-out', 'mr-1 rtl:ml-1')} ${t('logout')}</button>
-                        ` : `
-                            <button id="nav-admin-login" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-secondary hover:text-primary flex items-center">${createIcon('log-in', 'mr-1 rtl:ml-1')} ${t('adminPanel')}</button>
-                        `}
-                        <button id="lang-toggle-btn" class="p-2 rounded-md hover:bg-accent">
-                            ${createIcon('languages')} <span class="ml-1 rtl:mr-1 text-sm font-medium">${currentLanguage === 'en' ? 'AR' : 'EN'}</span>
-                        </button>
-                        <button id="theme-toggle-btn" class="p-2 rounded-md hover:bg-accent">
-                            ${currentTheme === 'light' ? createIcon('moon') : createIcon('sun')}
-                        </button>
-                    </div>
-                </div>
-            `;
-            $('#lang-toggle-btn')?.addEventListener('click', toggleLanguage);
-            $('#theme-toggle-btn')?.addEventListener('click', toggleTheme);
-            $('#nav-user-view')?.addEventListener('click', () => { currentPage = 'user'; navigateToCurrentPage(); });
-            $('#nav-admin-login')?.addEventListener('click', () => { currentPage = 'adminLogin'; navigateToCurrentPage(); });
-            $('#nav-admin-dashboard')?.addEventListener('click', () => { currentPage = 'adminDashboard'; navigateToCurrentPage(); });
-            $('#logout-btn')?.addEventListener('click', handleLogout);
-            updateActiveNavLink();
-            lucide.createIcons();
-        }
-        
-        function updateActiveNavLink() {
-            $$('.nav-link').forEach(link => link.classList.remove('text-brand-primary', 'font-bold'));
-            if (currentPage === 'user') $('#nav-user-view')?.classList.add('text-brand-primary', 'font-bold');
-            if (currentPage === 'adminLogin') $('#nav-admin-login')?.classList.add('text-brand-primary', 'font-bold');
-            if (currentPage === 'adminDashboard') $('#nav-admin-dashboard')?.classList.add('text-brand-primary', 'font-bold');
-        }
-
-        function renderFooter() {
-            const footer = $('#footer');
-            if (!footer) return;
-            footer.innerHTML = `<p class="text-sm text-secondary">&copy; ${new Date().getFullYear()} ${t('appName')} WMS. ${t('appDescription')}</p>`;
-        }
-
-        function showUserPage() {
-            const mainContent = $('#main-content');
-            if (!mainContent) return;
-            mainContent.innerHTML = `
-                <div class="mb-6">
-                    <input type="text" id="search-products-user" placeholder="${t('searchProducts')}" class="w-full p-3 border border-secondary rounded-lg shadow-sm focus:ring-2 focus:ring-brand-primary input-styled">
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div id="product-display-area" class="md:col-span-2 space-y-12">
-                        <div class="flex items-center justify-center h-32"><div class="spinner"></div> <span class="ml-3 text-lg">${t('loading')}</span></div>
-                    </div>
-                    <aside id="cart-sidebar" class="card p-6 rounded-xl md:sticky md:top-24 h-fit">
-                        </aside>
-                </div>
-            `;
-            renderProductSections();
-            renderCart();
-            $('#search-products-user')?.addEventListener('input', (e) => renderProductSections(e.target.value));
-        }
-
-        function renderProductSections(searchTerm = '') {
-            const productArea = $('#product-display-area');
-            if (!productArea) return;
-
-            if (productsCache.length === 0 && isAuthReady) { // Check if auth is ready before showing no products
-                productArea.innerHTML = `<div class="flex items-center justify-center h-32"><div class="spinner"></div> <span class="ml-3 text-lg">${t('loading')}</span></div>`;
-                return; // Still loading products or no products at all yet
-            }
-
-
-            const filtered = productsCache.filter(p => {
-                const name = currentLanguage === 'ar' ? p.name_ar : p.name_en;
-                return name.toLowerCase().includes(searchTerm.toLowerCase());
-            });
-
-            const restaurantProducts = filtered.filter(p => p.category === 'restaurant');
-            const kitchenProducts = filtered.filter(p => p.category === 'kitchen');
-
-            productArea.innerHTML = `
-                ${renderProductCategoryHTML(t('restaurantSector'), restaurantProducts)}
-                ${renderProductCategoryHTML(t('kitchenSector'), kitchenProducts)}
-            `;
-            if(filtered.length === 0 && searchTerm !== ''){
-                 productArea.innerHTML += `<p class="text-center text-secondary py-4">${t('noProductsFound')}</p>`;
-            } else if (productsCache.length > 0 && restaurantProducts.length === 0 && kitchenProducts.length === 0 && searchTerm === '') {
-                 productArea.innerHTML = `<p class="text-center text-secondary py-4">${t('noProducts')}</p>`; // No products at all in any category
-            }
-
-            lucide.createIcons();
-        }
-        
-        function renderProductCategoryHTML(title, productsInCategory) {
-            let productsHTML = '';
-            if (productsInCategory.length === 0) {
-                // Don't show "No products in this sector" if search is active and it's just empty for this category due to search
-                // This will be handled by the global "no products found" message if all categories are empty after search
-                if (!$('#search-products-user') || !$('#search-products-user').value) {
-                     productsHTML = `<p class="text-secondary">${t('noProducts')}</p>`;
-                }
-            } else {
-                productsHTML = productsInCategory.map(renderProductCardHTML).join('');
-            }
-            // Only render the section if there are products or if it's not a search result context
-            if (productsHTML || (!$('#search-products-user') || !$('#search-products-user').value)) {
-                return `
-                    <section>
-                        <h2 class="text-3xl font-semibold mb-6 border-b-2 border-brand-primary pb-2 text-primary">${title}</h2>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            ${productsHTML}
-                        </div>
-                    </section>
-                `;
-            }
-            return ''; // Return empty if search yields no results for this specific category
-        }
-
-        function renderProductCardHTML(product) {
-            const productName = currentLanguage === 'ar' ? product.name_ar : product.name_en;
-            const isLowStock = product.stock <= product.lowStockThreshold;
-            const stockAvailable = product.stock > 0;
-
-            return `
-                <div class="card rounded-xl overflow-hidden transition-all duration-300 hover:shadow-2xl transform hover:-translate-y-1 ${isLowStock && stockAvailable ? 'low-stock-alert' : ''}">
-                    <div class="p-5">
-                        <h3 class="text-xl font-semibold mb-2 text-primary truncate" title="${productName}">${productName}</h3>
-                        <p class="text-sm text-secondary mb-1">${t('category')}: ${t(product.category)}</p>
-                        <p class="text-sm mb-3 ${isLowStock && stockAvailable ? 'low-stock-text' : 'text-secondary'}">
-                            ${t('stock')}: ${product.stock} 
-                            ${isLowStock && stockAvailable ? createIcon('alert-triangle', 'inline ml-1 rtl:mr-1') : ''}
-                            ${!stockAvailable ? `<span class="text-red-500 font-semibold">(${t('outOfStock')})</span>` : ''}
-                        </p>
-                        <button 
-                            class="btn btn-primary w-full ${!stockAvailable ? 'opacity-50 cursor-not-allowed' : ''}" 
-                            onclick="handleAddToCart('${product.id}')"
-                            ${!stockAvailable ? 'disabled' : ''}
-                        >
-                            ${createIcon('shopping-cart', 'mr-2 rtl:ml-2')} ${t('addToCart')}
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderCart() {
-            const cartSidebar = $('#cart-sidebar');
-            if (!cartSidebar) return;
-
-            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-            cartSidebar.innerHTML = `
-                <h3 class="text-2xl font-semibold mb-6 text-primary flex items-center">
-                    ${createIcon('shopping-cart', 'mr-2 rtl:ml-2 text-brand-primary')} ${t('cart')}
-                </h3>
-                ${cart.length === 0 ? `
-                    <p class="text-secondary">${t('emptyCart')}</p>
-                ` : `
-                    <div class="space-y-4 max-h-96 overflow-y-auto mb-6 pr-2 rtl:pl-2">
-                        ${cart.map(item => {
-                            const productDetails = productsCache.find(p => p.id === item.id);
-                            const itemName = currentLanguage === 'ar' ? item.name_ar : item.name_en;
-                            const stockForThisItem = productDetails ? productDetails.stock : 0; 
-                            return `
-                            <div class="flex items-center justify-between p-3 bg-accent rounded-lg">
-                                <div>
-                                    <p class="font-medium text-primary truncate w-32 sm:w-40" title="${itemName}">${itemName}</p>
-                                    <p class="text-xs text-secondary">${t('stock')}: ${stockForThisItem}</p>
-                                </div>
-                                <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                                    <button class="btn-icon p-1 text-red-500 hover:text-red-700" onclick="handleUpdateCartQuantity('${item.id}', ${item.quantity - 1})">${createIcon('minus-circle')}</button>
-                                    <input type="number" value="${item.quantity}" readonly class="w-12 p-1 border border-secondary rounded-md text-center input-styled bg-primary" />
-                                    <button class="btn-icon p-1 text-green-500 hover:text-green-700 ${item.quantity >= stockForThisItem ? 'opacity-50 cursor-not-allowed' : ''}" onclick="handleUpdateCartQuantity('${item.id}', ${item.quantity + 1})" ${item.quantity >= stockForThisItem ? 'disabled' : ''}>${createIcon('plus-circle')}</button>
-                                    <button class="btn-icon p-1 text-red-500 hover:text-red-700" onclick="handleRemoveFromCart('${item.id}')">${createIcon('trash-2')}</button>
-                                </div>
-                            </div>
-                        `}).join('')}
-                    </div>
-                    <div class="border-t border-primary pt-4">
-                        <p class="text-lg font-semibold text-primary mb-1">
-                            ${t('totalItems')}: <span class="text-brand-primary">${totalItems}</span>
-                        </p>
-                        <button class="btn btn-success w-full mb-2" onclick="handlePlaceOrder()">
-                            ${createIcon('check-circle', 'mr-2 rtl:ml-2')} ${t('placeOrder')}
-                        </button>
-                        <button class="btn btn-danger w-full" onclick="handleClearCart()">
-                            ${createIcon('trash', 'mr-2 rtl:ml-2')} ${t('clearCart')}
-                        </button>
-                    </div>
-                `}
-            `;
-            lucide.createIcons();
-        }
-        
-        // --- Cart Logic ---
-        window.handleAddToCart = (productId) => {
-            const product = productsCache.find(p => p.id === productId);
-            if (!product || product.stock <= 0) {
-                showNotification(t('itemOutOfStock'), 'error');
-                return;
-            }
-
-            const existingItem = cart.find(item => item.id === productId);
-            if (existingItem) {
-                if (existingItem.quantity < product.stock) {
-                    existingItem.quantity++;
-                } else {
-                    showNotification(t('maxStockReached'), 'info');
-                    return;
-                }
-            } else {
-                cart.push({ 
-                    id: product.id, 
-                    name_en: product.name_en, 
-                    name_ar: product.name_ar, 
-                    quantity: 1,
-                });
-            }
-            saveCartAndRender();
-        }
-
-        window.handleUpdateCartQuantity = (productId, newQuantity) => {
-            const itemInCart = cart.find(item => item.id === productId);
-            if (!itemInCart) return;
-
-            const productDetails = productsCache.find(p => p.id === productId);
-            const stockAvailable = productDetails ? productDetails.stock : 0;
-
-            if (newQuantity <= 0) {
-                cart = cart.filter(item => item.id !== productId);
-            } else if (newQuantity > stockAvailable) {
-                itemInCart.quantity = stockAvailable; 
-                showNotification(`${t('quantityCappedAtStock')} (${stockAvailable}).`, 'info');
-            } else {
-                itemInCart.quantity = newQuantity;
-            }
-            saveCartAndRender();
-        }
-        
-        window.handleRemoveFromCart = (productId) => {
-            cart = cart.filter(item => item.id !== productId);
-            saveCartAndRender();
-        }
-
-        window.handleClearCart = () => {
-            cart = [];
-            saveCartAndRender();
-            showNotification(t('cartCleared'), 'info');
-        }
-
-        function saveCartAndRender() {
-            localStorage.setItem('khamerCart', JSON.stringify(cart));
-            renderCart();
-        }
-        
-        async function handlePlaceOrder() {
-            if (cart.length === 0) {
-                showNotification(t('emptyCart'), 'error');
-                return;
-            }
-            if (!userId) { // Ensure userId is available (should be from onAuthStateChanged)
-                showNotification(t('errorPlacingOrder') + ' (User ID missing)', 'error');
-                console.error("Cannot place order: userId is null or undefined.");
-                return;
-            }
-            try {
-                const orderData = {
-                    userId: userId, 
-                    items: cart.map(item => ({ 
-                        productId: item.id, 
-                        name_en: item.name_en,
-                        name_ar: item.name_ar,
-                        quantity: item.quantity 
-                    })),
-                    status: 'pending', 
-                    timestamp: Timestamp.now(), 
-                };
-                await addDoc(collection(db, ordersCollectionPath), orderData);
+            } else { 
+                currentPasscode = null;
+                currentSector = null;
                 cart = []; 
-                saveCartAndRender();
-                showNotification(t('orderPlacedSuccessfully'), 'success');
-            } catch (error) {
-                console.error("Error placing order:", error);
-                showNotification(t('errorPlacingOrder'), 'error');
+                renderCart();
+                showLoginView(); 
+                showMessage('সফলভাবে লগ আউট করা হয়েছে।', 'info');
             }
-        }
+            loadingIndicator.classList.add('hidden');
+        });
 
 
-        // --- Admin Pages ---
-        function showAdminLoginPage() {
-            const mainContent = $('#main-content');
-             if (!mainContent) return;
-            mainContent.innerHTML = `
-                <div class="flex items-center justify-center py-12">
-                    <div class="card p-8 rounded-xl w-full max-w-md">
-                        <h2 class="text-3xl font-bold text-center text-primary mb-8">${t('loginToAdmin')}</h2>
-                        <form id="admin-login-form" class="space-y-6">
-                            <div>
-                                <label for="admin-email" class="block text-sm font-medium text-secondary mb-1">${t('email')}</label>
-                                <input type="email" id="admin-email" required class="w-full p-3 border border-secondary rounded-lg shadow-sm focus:ring-2 focus:ring-brand-primary input-styled">
-                            </div>
-                            <div>
-                                <label for="admin-password" class="block text-sm font-medium text-secondary mb-1">${t('password')}</label>
-                                <input type="password" id="admin-password" required class="w-full p-3 border border-secondary rounded-lg shadow-sm focus:ring-2 focus:ring-brand-primary input-styled">
-                            </div>
-                            <button type="submit" class="btn btn-primary w-full">
-                                ${t('login')}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            `;
-            $('#admin-login-form')?.addEventListener('submit', handleAdminLogin);
-        }
-
-        async function handleAdminLogin(event) {
-            event.preventDefault();
-            const email = $('#admin-email').value;
-            const password = $('#admin-password').value;
+        // --- Product Management (Real-time) ---
+        async function setupInitialProducts() {
+            const productsRef = collection(db, `artifacts/${appId}/public/data/products`);
             try {
-                await signInWithEmailAndPassword(auth, email, password);
-                currentPage = 'adminDashboard';
-                showNotification(t('loginSuccess'), 'success');
-                // onAuthStateChanged will handle navigation and data fetching for admin
-            } catch (err) {
-                console.error("Admin login error:", err);
-                showNotification(t('loginFailed') + ` (${err.code})`, 'error');
-            }
-        }
-
-        async function handleLogout() {
-            try {
-                await signOut(auth);
-                currentUser = null; 
-                // After admin logout, sign in anonymously again for guest user view
-                await signInAnonymously(auth); 
-                currentPage = 'user';
-                showNotification(t('logoutSuccess'), 'info');
-                // onAuthStateChanged will trigger navigation and data refresh
-            } catch (error) {
-                console.error("Logout error:", error);
-            }
-        }
-
-        function showAdminDashboardPage() {
-            const mainContent = $('#main-content');
-            if (!mainContent) return;
-            mainContent.innerHTML = `
-                <div class="container mx-auto">
-                    <h2 class="text-3xl font-semibold mb-8 text-primary">${t('adminPanel')} - ${t('dashboard')}</h2>
-                    ${userId ? `<p class="mb-4 text-xs text-secondary">${t('userIdLabel')}: ${userId}</p>` : ''}
-                    <div class="mb-6 border-b border-primary">
-                        <nav id="admin-tabs" class="flex space-x-4 rtl:space-x-reverse" aria-label="Tabs">
-                            <button data-tab="products" class="admin-tab-btn px-4 py-2 font-medium text-sm rounded-t-lg">${t('productManagement')}</button>
-                            <button data-tab="orders" class="admin-tab-btn px-4 py-2 font-medium text-sm rounded-t-lg">${t('orderManagement')}</button>
-                        </nav>
-                    </div>
-                    <div id="admin-tab-content">
-                        <div class="flex items-center justify-center h-32"><div class="spinner"></div> <span class="ml-3 text-lg">${t('loading')}</span></div>
-                    </div>
-                </div>
-            `;
-            $$('.admin-tab-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const tabName = e.target.dataset.tab;
-                    renderAdminTabContent(tabName);
-                });
-            });
-            renderAdminTabContent('products');
-        }
-
-        function renderAdminTabContent(tabName) {
-            $$('.admin-tab-btn').forEach(btn => {
-                btn.classList.remove('bg-brand-primary', 'text-white');
-                btn.classList.add('text-secondary', 'hover:bg-accent');
-            });
-            const activeBtn = $(`.admin-tab-btn[data-tab="${tabName}"]`);
-            if (activeBtn) {
-                activeBtn.classList.add('bg-brand-primary', 'text-white');
-                activeBtn.classList.remove('text-secondary', 'hover:bg-accent');
-            }
-
-
-            const tabContent = $('#admin-tab-content');
-            if (!tabContent) return;
-
-            if (tabName === 'products') {
-                tabContent.innerHTML = getProductManagementHTML();
-                renderAdminProductTable();
-                $('#add-new-product-btn')?.addEventListener('click', () => showProductFormModal(null));
-                $('#admin-product-search')?.addEventListener('input', (e) => renderAdminProductTable(e.target.value, $('#admin-category-filter').value));
-                $('#admin-category-filter')?.addEventListener('change', (e) => renderAdminProductTable($('#admin-product-search').value, e.target.value));
-
-            } else if (tabName === 'orders') {
-                tabContent.innerHTML = getOrderManagementHTML();
-                renderAdminOrderList();
-            }
-            lucide.createIcons();
-        }
-        
-        // --- Product Management (Admin) ---
-        function getProductManagementHTML() {
-            return `
-                <div class="card p-6 rounded-lg">
-                    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                        <h3 class="text-xl font-semibold text-primary">${t('manageStock')}</h3>
-                        <button id="add-new-product-btn" class="btn btn-success">
-                            ${createIcon('plus-circle', 'mr-2 rtl:ml-2')} ${t('addNewProduct')}
-                        </button>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div>
-                            <label for="admin-category-filter" class="block text-sm font-medium text-secondary mb-1">${t('filterByCategory')}</label>
-                            <select id="admin-category-filter" class="w-full p-2 border border-secondary rounded-lg shadow-sm focus:ring-2 focus:ring-brand-primary input-styled">
-                                <option value="all">${t('categoryFilterAll')}</option>
-                                <option value="restaurant">${t('restaurant')}</option>
-                                <option value="kitchen">${t('kitchen')}</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="admin-product-search" class="block text-sm font-medium text-secondary mb-1">${t('searchProducts')}</label>
-                            <input type="text" id="admin-product-search" placeholder="${t('searchProducts')}" class="w-full p-2 border border-secondary rounded-lg shadow-sm focus:ring-2 focus:ring-brand-primary input-styled">
-                        </div>
-                    </div>
-                    <div id="admin-product-table-container" class="overflow-x-auto">
-                        <div class="flex items-center justify-center h-32"><div class="spinner"></div> <span class="ml-3 text-lg">${t('loading')}</span></div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        function renderAdminProductTable(searchTerm = '', categoryFilter = 'all') {
-            const container = $('#admin-product-table-container');
-            if (!container) return;
-
-            if (productsCache.length === 0 && isAuthReady) {
-                container.innerHTML = `<div class="flex items-center justify-center h-32"><div class="spinner"></div> <span class="ml-3 text-lg">${t('loading')}</span></div>`;
-                return;
-            }
-            
-            const filtered = productsCache.filter(p => {
-                const nameMatch = (currentLanguage === 'ar' ? p.name_ar : p.name_en).toLowerCase().includes(searchTerm.toLowerCase());
-                const categoryMatch = categoryFilter === 'all' || p.category === categoryFilter;
-                return nameMatch && categoryMatch;
-            });
-            
-            filtered.sort((a, b) => a.name_en.localeCompare(b.name_en));
-
-
-            if (filtered.length === 0 && productsCache.length > 0) { 
-                 container.innerHTML = `<p class="text-center py-4 text-secondary">${t('noProductsFound')}</p>`;
-                 return;
-            }
-             if (productsCache.length === 0 && isAuthReady) { 
-                 container.innerHTML = `<p class="text-center py-4 text-secondary">${t('noProducts')}</p>`;
-                 return;
-            }
-
-
-            container.innerHTML = `
-                <table class="min-w-full divide-y divide-border-primary">
-                    <thead class="bg-accent">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">${t('productNameEn')}</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">${t('productNameAr')}</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">${t('category')}</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">${t('stock')}</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">${t('lowStockThreshold')}</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">${t('actions')}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-primary divide-y divide-border-primary">
-                        ${filtered.map(product => {
-                            const isLowStock = product.stock <= product.lowStockThreshold;
-                            return `
-                                <tr class="${isLowStock ? 'bg-red-500/10 dark:bg-red-500/20' : ''}">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-primary">${product.name_en}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-primary">${product.name_ar}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary">${t(product.category)}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${isLowStock ? 'text-red-500' : 'text-primary'}">
-                                        ${product.stock} ${isLowStock ? createIcon('alert-triangle', 'inline ml-1 rtl:mr-1') : ''}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary">${product.lowStockThreshold}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2 rtl:space-x-reverse">
-                                        <button class="text-brand-primary hover:text-brand-hover" onclick="showProductFormModal('${product.id}')">${createIcon('edit-3')}</button>
-                                        <button class="text-red-500 hover:text-red-700" onclick="confirmDeleteProduct('${product.id}')">${createIcon('trash-2')}</button>
-                                    </td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
-            `;
-            lucide.createIcons();
-        }
-
-        window.showProductFormModal = (productId = null) => {
-            const product = productId ? productsCache.find(p => p.id === productId) : null;
-            const modalTitle = product ? t('editProduct') : t('addNewProduct');
-            const formId = "product-form";
-
-            const formHTML = `
-                <form id="${formId}" class="space-y-4">
-                    <input type="hidden" name="id" value="${product?.id || ''}">
-                    <div>
-                        <label for="name_en" class="block text-sm font-medium text-secondary">${t('productNameEn')}</label>
-                        <input type="text" name="name_en" id="name_en" value="${product?.name_en || ''}" required class="mt-1 block w-full p-2 border border-secondary rounded-md shadow-sm input-styled">
-                    </div>
-                    <div>
-                        <label for="name_ar" class="block text-sm font-medium text-secondary">${t('productNameAr')}</label>
-                        <input type="text" name="name_ar" id="name_ar" value="${product?.name_ar || ''}" required class="mt-1 block w-full p-2 border border-secondary rounded-md shadow-sm input-styled">
-                    </div>
-                    <div>
-                        <label for="category" class="block text-sm font-medium text-secondary">${t('category')}</label>
-                        <select name="category" id="category" class="mt-1 block w-full p-2 border border-secondary rounded-md shadow-sm input-styled">
-                            <option value="restaurant" ${product?.category === 'restaurant' ? 'selected' : ''}>${t('restaurant')}</option>
-                            <option value="kitchen" ${product?.category === 'kitchen' ? 'selected' : ''}>${t('kitchen')}</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="stock" class="block text-sm font-medium text-secondary">${t('stock')}</label>
-                        <input type="number" name="stock" id="stock" value="${product?.stock || 0}" min="0" required class="mt-1 block w-full p-2 border border-secondary rounded-md shadow-sm input-styled">
-                    </div>
-                    <div>
-                        <label for="lowStockThreshold" class="block text-sm font-medium text-secondary">${t('lowStockThreshold')}</label>
-                        <input type="number" name="lowStockThreshold" id="lowStockThreshold" value="${product?.lowStockThreshold || 5}" min="0" required class="mt-1 block w-full p-2 border border-secondary rounded-md shadow-sm input-styled">
-                    </div>
-                    <div class="flex justify-end space-x-3 rtl:space-x-reverse pt-2">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal()">${t('cancel')}</button>
-                        <button type="submit" class="btn btn-primary">${product ? t('updateProduct') : t('saveProduct')}</button>
-                    </div>
-                </form>
-            `;
-            openModal(modalTitle, formHTML, false); 
-            $(`#${formId}`)?.addEventListener('submit', (e) => handleProductFormSubmit(e, product?.id));
-        }
-
-        async function handleProductFormSubmit(event, editingProductId) {
-            event.preventDefault();
-            const form = event.target;
-            const productData = {
-                name_en: form.name_en.value.trim(),
-                name_ar: form.name_ar.value.trim(),
-                category: form.category.value,
-                stock: parseInt(form.stock.value),
-                lowStockThreshold: parseInt(form.lowStockThreshold.value),
-            };
-
-            if (!productData.name_en || !productData.name_ar) {
-                showNotification(t('productNameRequired'), 'error');
-                return;
-            }
-
-            try {
-                if (editingProductId) {
-                    await updateDoc(doc(db, productsCollectionPath, editingProductId), productData);
-                    showNotification(t('productUpdatedSuccess'), 'success');
+                const snapshot = await getDocs(productsRef);
+                if (snapshot.empty) {
+                    console.log("No products found, setting up initial products...");
+                    const initialProducts = [
+                        { name: 'চাল (Rice)', category: 'কিচেন ক্যাটাগরি', price: 60, description: 'উচ্চ মানের বাসমতী চাল', imageUrl: 'https://placehold.co/300x200/FFFCCC/000000?text=চাল' },
+                        { name: 'ডাল (Lentils)', category: 'কিচেন ক্যাটাগরি', price: 120, description: 'তাজা মুগ ডাল', imageUrl: 'https://placehold.co/300x200/FFFCCC/000000?text=ডাল' },
+                        { name: 'সয়াবিন তেল (Soybean Oil)', category: 'কিচেন ক্যাটাগরি', price: 150, description: '৫ লিটার সয়াবিন তেল', imageUrl: 'https://placehold.co/300x200/FFFCCC/000000?text=তেল' },
+                        { name: 'আলু (Potato)', category: 'কিচেন ক্যাটাগরি', price: 40, description: '১ কেজি তাজা আলু', imageUrl: 'https://placehold.co/300x200/FFFCCC/000000?text=আলু' },
+                        { name: 'পেঁয়াজ (Onion)', category: 'কিচেন ক্যাটাগরি', price: 80, description: '১ কেজি দেশি পেঁয়াজ', imageUrl: 'https://placehold.co/300x200/FFFCCC/000000?text=পেঁয়াজ' },
+                        { name: 'মুরগির মাংস (Chicken)', category: 'রেস্টুরেন্ট ক্যাটাগরি', price: 280, description: '১ কেজি ব্রয়লার মুরগি', imageUrl: 'https://placehold.co/300x200/E6F2FF/000000?text=মুরগি' },
+                        { name: 'গরুর মাংস (Beef)', category: 'রেস্টুরেন্ট ক্যাটাগরি', price: 750, description: '১ কেজি গরুর মাংস (হাড়সহ)', imageUrl: 'https://placehold.co/300x200/E6F2FF/000000?text=গরুর+মাংস' },
+                    ];
+                    for (const product of initialProducts) {
+                        await addDoc(productsRef, product);
+                    }
+                    console.log("Initial products added.");
                 } else {
-                    await addDoc(collection(db, productsCollectionPath), productData);
-                    showNotification(t('productAddedSuccess'), 'success');
+                    console.log("Products already exist or listener will populate.");
                 }
-                closeModal();
             } catch (error) {
-                console.error("Error saving product:", error);
-                showNotification(t('errorSavingProduct'), 'error');
+                console.error("Error setting up initial products: ", error);
             }
         }
-        
-        window.confirmDeleteProduct = (productId) => {
-            openConfirmDialog(
-                t('confirmDeleteProductTitle'),
-                t('confirmDeleteProductMessage'),
-                async () => {
-                    try {
-                        await deleteDoc(doc(db, productsCollectionPath, productId));
-                        showNotification(t('productDeletedSuccess'), 'success');
-                    } catch (error) {
-                        console.error("Error deleting product:", error);
-                        showNotification(t('errorDeletingProduct'), 'error');
-                    }
-                }
-            );
+
+        function listenToProducts() {
+            if (unsubscribeProducts) unsubscribeProducts(); 
+
+            productLoadingIndicator.classList.remove('hidden');
+            const productsQuery = collection(db, `artifacts/${appId}/public/data/products`);
+            
+            unsubscribeProducts = onSnapshot(productsQuery, (snapshot) => {
+                products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderProducts(); 
+                productLoadingIndicator.classList.add('hidden');
+            }, (error) => {
+                console.error("Error listening to products: ", error);
+                showMessage(`পণ্য আনতে সমস্যা হচ্ছে: ${error.message}`, 'error');
+                productListDiv.innerHTML = '<p class="text-red-500">পণ্য লোড করা যায়নি।</p>';
+                productLoadingIndicator.classList.add('hidden');
+            });
         }
 
-        // --- Order Management (Admin) ---
-        function getOrderManagementHTML() {
-            return `
-                <div class="card p-6 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-6 text-primary">${t('viewOrders')}</h3>
-                    <div id="admin-order-list-container" class="space-y-6">
-                        <div class="flex items-center justify-center h-32"><div class="spinner"></div> <span class="ml-3 text-lg">${t('loading')}</span></div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderAdminOrderList() {
-            const container = $('#admin-order-list-container');
-            if (!container) return;
-
-            if (!ordersCache || ordersCache.length === 0 && isAuthReady) {
-                container.innerHTML = `<p class="text-center py-4 text-secondary">${t('noOrders')}</p>`;
+        function renderProducts() {
+            productListDiv.innerHTML = ''; 
+            if (products.length === 0 && !productLoadingIndicator.classList.contains('hidden')) {
                 return;
             }
-            if (ordersCache.length === 0 && !isAuthReady) { // Still loading
-                 container.innerHTML = `<div class="flex items-center justify-center h-32"><div class="spinner"></div> <span class="ml-3 text-lg">${t('loading')}</span></div>`;
-                 return;
+            if (products.length === 0) {
+                 productListDiv.innerHTML = '<p class="text-gray-500">এখন কোনো পণ্য উপলব্ধ নেই। অ্যাডমিন শীঘ্রই পণ্য যোগ করবেন।</p>';
+                return;
             }
-            
-            const sortedOrders = [...ordersCache].sort((a, b) => b.timestamp.toDate() - a.timestamp.toDate());
 
-            container.innerHTML = sortedOrders.map(order => {
-                const orderDate = order.timestamp.toDate();
-                const formattedDate = `${orderDate.toLocaleDateString()} ${orderDate.toLocaleTimeString()}`;
-                return `
-                    <div class="p-4 rounded-lg shadow border ${order.status === 'pending' ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-green-500/10 border-green-500/30'}">
-                        <div class="flex flex-col sm:flex-row justify-between items-start mb-3">
-                            <div>
-                                <p class="text-sm text-secondary">${t('orderId')}: ${order.id.substring(0,8)}...</p>
-                                <p class="text-sm text-secondary">${t('date')}: ${formattedDate}</p>
-                                ${order.userId ? `<p class="text-xs text-gray-400 dark:text-gray-500">${t('userIdLabel')}: ${order.userId}</p>` : ''}
-                            </div>
-                            <span class="mt-2 sm:mt-0 px-3 py-1 text-xs font-semibold rounded-full ${order.status === 'pending' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">
-                                ${t(order.status)}
-                            </span>
-                        </div>
-                        <ul class="space-y-1 mb-3 text-sm text-primary">
-                            ${order.items.map(item => `<li>- ${currentLanguage === 'ar' ? item.name_ar : item.name_en}: ${item.quantity} ${t('items')}</li>`).join('')}
-                        </ul>
-                        ${order.status === 'pending' ? `
-                            <button class="btn btn-success btn-sm" onclick="confirmAdminOrder('${order.id}')">
-                                ${createIcon('check-circle', 'mr-1 rtl:ml-1')} ${t('confirmOrder')}
-                            </button>
-                        ` : ''}
-                    </div>
-                `;
-            }).join('');
-            lucide.createIcons();
-        }
-        
-        window.confirmAdminOrder = (orderId) => {
-            const order = ordersCache.find(o => o.id === orderId);
-            if (!order) return;
-
-            openConfirmDialog(
-                t('confirmOrderDialogTitle'),
-                t('confirmOrderConfirmation'),
-                async () => {
-                    try {
-                        const batch = writeBatch(db);
-                        let canConfirmAll = true;
-                        let stockUpdateIssues = [];
-
-                        for (const item of order.items) {
-                            const productRef = doc(db, productsCollectionPath, item.productId);
-                            const productSnap = await getDoc(productRef); 
-
-                            if (productSnap.exists()) {
-                                const currentStock = productSnap.data().stock;
-                                if (currentStock >= item.quantity) {
-                                    batch.update(productRef, { stock: currentStock - item.quantity });
-                                } else {
-                                    canConfirmAll = false;
-                                    stockUpdateIssues.push(`${currentLanguage === 'ar' ? item.name_ar : item.name_en}: ${t('requested')} ${item.quantity}, ${t('available')} ${currentStock}.`);
-                                    break; 
-                                }
-                            } else {
-                                canConfirmAll = false; 
-                                stockUpdateIssues.push(`${currentLanguage === 'ar' ? item.name_ar : item.name_en}: ${t('productNotFound')}.`);
-                                break;
-                            }
-                        }
-
-                        if (canConfirmAll) {
-                            const orderRef = doc(db, ordersCollectionPath, orderId);
-                            batch.update(orderRef, { status: 'confirmed' });
-                            await batch.commit();
-                            showNotification(t('orderConfirmedSuccess'), 'success');
-                        } else {
-                            const message = `${t('insufficientStock')} ${stockUpdateIssues.join(' ')}`;
-                            showNotification(message, 'error');
-                        }
-                    } catch (error) {
-                        console.error("Error confirming order:", error);
-                        showNotification(t('errorConfirmingOrder'), 'error');
-                    }
-                }
-            );
-        }
-
-        // --- Firestore Data Fetching ---
-        let productsUnsubscribe = null;
-        let ordersUnsubscribe = null;
-
-        function fetchProducts() {
-            if (productsUnsubscribe) productsUnsubscribe(); 
-
-            const productsQuery = query(collection(db, productsCollectionPath));
-            productsUnsubscribe = onSnapshot(productsQuery, (snapshot) => {
-                productsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                console.log("Products fetched/updated:", productsCache.length);
-                if (currentPage === 'user') renderProductSections($('#search-products-user')?.value || '');
-                if (currentPage === 'adminDashboard' && $('#admin-tab-content')) { 
-                     const activeTab = $('.admin-tab-btn.bg-brand-primary')?.dataset.tab;
-                     if(activeTab === 'products') renderAdminProductTable($('#admin-product-search')?.value || '', $('#admin-category-filter')?.value || 'all');
-                }
-                renderCart(); 
-            }, (error) => {
-                console.error("Error fetching products:", error);
-                showNotification(t('errorFetchingProducts'), 'error');
-                if (currentPage === 'user') $('#product-display-area').innerHTML = `<p class="text-red-500 text-center">${t('errorFetchingProducts')}</p>`;
-                if (currentPage === 'adminDashboard' && $('.admin-tab-btn.bg-brand-primary')?.dataset.tab === 'products') {
-                     $('#admin-product-table-container').innerHTML = `<p class="text-red-500 text-center">${t('errorFetchingProducts')}</p>`;
-                }
-            });
-        }
-
-        function fetchOrders() {
-            if (ordersUnsubscribe) ordersUnsubscribe(); 
-
-            const ordersQuery = query(collection(db, ordersCollectionPath)); 
-            ordersUnsubscribe = onSnapshot(ordersQuery, (snapshot) => {
-                ordersCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                 console.log("Orders fetched/updated:", ordersCache.length);
-                if (currentPage === 'adminDashboard' && $('#admin-tab-content')) {
-                     const activeTab = $('.admin-tab-btn.bg-brand-primary')?.dataset.tab;
-                     if(activeTab === 'orders') renderAdminOrderList();
-                }
-            }, (error) => {
-                console.error("Error fetching orders:", error);
-                showNotification(t('errorFetchingOrders'), 'error');
-                 if (currentPage === 'adminDashboard' && $('.admin-tab-btn.bg-brand-primary')?.dataset.tab === 'orders') {
-                     $('#admin-order-list-container').innerHTML = `<p class="text-red-500 text-center">${t('errorFetchingOrders')}</p>`;
-                }
-            });
-        }
-        
-        // --- Modals and Notifications ---
-        function openModal(title, contentHTML, showCloseButton = true) {
-            const placeholder = $('#modal-placeholder');
-            if (!placeholder) return;
-            
-            placeholder.innerHTML = `
-                <div id="app-modal-overlay" class="modal-overlay">
-                    <div class="modal-container">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-xl font-semibold text-primary">${title}</h3>
-                            ${showCloseButton ? `<button onclick="closeModal()" class="p-1 text-secondary hover:text-primary">${createIcon('x')}</button>` : ''}
-                        </div>
-                        <div>${contentHTML}</div>
-                    </div>
-                </div>
-            `;
-            lucide.createIcons();
-            
-            const modal = placeholder.querySelector('.modal-container');
-            const focusableElements = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-            const focusableContent = Array.from(modal.querySelectorAll(focusableElements));
-            const firstFocusableElement = focusableContent[0];
-            const lastFocusableElement = focusableContent[focusableContent.length - 1];
-
-            const trapTabKey = (e) => {
-                if (!modal.contains(document.activeElement)) { // If focus is outside modal, bring it back
-                    firstFocusableElement?.focus();
-                }
-                if (e.key !== 'Tab') return;
-
-                if (e.shiftKey) { 
-                    if (document.activeElement === firstFocusableElement) {
-                        lastFocusableElement?.focus();
-                        e.preventDefault();
-                    }
-                } else { 
-                    if (document.activeElement === lastFocusableElement) {
-                        firstFocusableElement?.focus();
-                        e.preventDefault();
-                    }
-                }
+            const categories = {
+                'রেস্টুরেন্ট ক্যাটাগরি': products.filter(p => p.category === 'রেস্টুরেন্ট ক্যাটাগরি'),
+                'কিচেন ক্যাটাগরি': products.filter(p => p.category === 'কিচেন ক্যাটাগরি')
             };
-            document.addEventListener('keydown', trapTabKey);
-            
-            // Store the listener to remove it later
-            modal.dataset.tabKeyListener = trapTabKey.toString(); // Not ideal, but simple way to reference for removal
 
+            for (const categoryName in categories) {
+                const categoryProducts = categories[categoryName];
+                if (categoryProducts.length > 0) {
+                    const categoryHeader = document.createElement('h3');
+                    categoryHeader.className = 'text-2xl font-semibold mt-6 mb-4 text-blue-600';
+                    categoryHeader.textContent = categoryName;
+                    productListDiv.appendChild(categoryHeader);
 
-            if(firstFocusableElement) firstFocusableElement.focus();
+                    const gridDiv = document.createElement('div');
+                    gridDiv.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6';
 
-            $('#app-modal-overlay').addEventListener('click', function(e) {
-                if (e.target === this) { 
-                    closeModal();
+                    categoryProducts.forEach(product => {
+                        const productCard = document.createElement('div');
+                        productCard.className = 'bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300';
+                        productCard.innerHTML = `
+                            <img src="${product.imageUrl || 'https://placehold.co/300x200/CCCCCC/000000?text=পণ্য'}" alt="${product.name}" class="w-full h-48 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/300x200/CCCCCC/000000?text=ত্রুটি';">
+                            <div class="p-4">
+                                <h4 class="text-xl font-semibold text-gray-800 mb-1">${product.name}</h4>
+                                <p class="text-sm text-gray-600 mb-2">${product.description || ''}</p>
+                                <p class="text-lg font-bold text-green-600 mb-3">৳${product.price}</p>
+                                <div class="flex items-center mb-3">
+                                    <label for="quantity-${product.id}" class="mr-2 text-sm text-gray-700">পরিমাণ:</label>
+                                    <input type="number" id="quantity-${product.id}" value="1" min="1" class="w-16 p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <button data-product-id="${product.id}" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out add-to-cart-btn">
+                                    কার্টে যোগ করুন
+                                </button>
+                            </div>
+                        `;
+                        gridDiv.appendChild(productCard);
+                    });
+                    productListDiv.appendChild(gridDiv);
                 }
-            });
-        }
-
-        window.closeModal = () => { 
-            const placeholder = $('#modal-placeholder');
-            const modal = placeholder.querySelector('.modal-container');
-            if (modal && modal.dataset.tabKeyListener) {
-                // This is tricky as the function is recreated. A more robust way is needed if many modals.
-                // For now, this won't remove the specific instance of trapTabKey.
-                // A better approach would be to name the function and remove it by name,
-                // or attach it to the modal element itself.
-                // document.removeEventListener('keydown', ???); // How to get the exact function reference?
             }
-            if (placeholder) placeholder.innerHTML = '';
-        }
-
-        function openConfirmDialog(title, message, onConfirmCallback) {
-            const dialogId = `confirm-dialog-${Date.now()}`;
-            const contentHTML = `
-                <p class="text-secondary mb-6">${message}</p>
-                <div class="flex justify-end space-x-3 rtl:space-x-reverse">
-                    <button id="confirm-cancel-${dialogId}" class="btn btn-secondary">${t('cancel')}</button>
-                    <button id="confirm-action-${dialogId}" class="btn btn-primary">${t('confirm')}</button>
-                </div>
-            `;
-            openModal(title, contentHTML, false); 
-            $(`#confirm-cancel-${dialogId}`)?.addEventListener('click', closeModal);
-            $(`#confirm-action-${dialogId}`)?.addEventListener('click', () => {
-                onConfirmCallback();
-                closeModal();
+            
+            document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+                button.removeEventListener('click', handleAddToCart); 
+                button.addEventListener('click', handleAddToCart);
             });
         }
-
-        let notificationTimeout;
-        function showNotification(message, type = 'info') { 
-            const banner = $('#notification-banner');
-            const messageSpan = $('#notification-message');
-            if (!banner || !messageSpan) return;
-
-            messageSpan.textContent = message;
-            banner.className = ''; 
-            banner.classList.add('show', type);
-
-            clearTimeout(notificationTimeout);
-            notificationTimeout = setTimeout(() => {
-                banner.classList.remove('show');
-            }, 4000); 
+        
+        function handleAddToCart(e) {
+            const productId = e.target.dataset.productId;
+            const quantityInput = document.getElementById(`quantity-${productId}`);
+            const quantity = parseInt(quantityInput.value);
+            if (quantity > 0) {
+                addToCart(productId, quantity);
+            } else {
+                showMessage('অনুগ্রহ করে সঠিক পরিমাণ নির্বাচন করুন।', 'error');
+            }
         }
 
+        // --- Cart Management ---
+        function addToCart(productId, quantity = 1) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+            const existingItem = cart.find(item => item.id === productId);
+            if (existingItem) existingItem.quantity += quantity;
+            else cart.push({ ...product, quantity });
+            renderCart();
+            showMessage(`${product.name} (${quantity} টি) কার্টে যোগ করা হয়েছে।`, 'success', 1500);
+        }
+        function renderCart() {
+            cartItemsDiv.innerHTML = '';
+            let total = 0;
+            if (cart.length === 0) {
+                cartItemsDiv.innerHTML = '<tr><td colspan="5" class="py-3 px-4 text-center text-gray-500">আপনার কার্ট খালি।</td></tr>';
+                cartTotalSpan.textContent = '0';
+                placeOrderButton.disabled = true;
+                placeOrderButton.classList.add('opacity-50', 'cursor-not-allowed');
+                return;
+            }
+            cart.forEach((item, index) => {
+                const itemRow = document.createElement('tr');
+                itemRow.className = 'border-b border-gray-200 hover:bg-gray-50';
+                itemRow.innerHTML = `
+                    <td class="py-3 px-4 text-left">${item.name}</td>
+                    <td class="py-3 px-4 text-center">
+                        <input type="number" value="${item.quantity}" min="1" data-cart-item-id="${item.id}" class="w-16 p-1 border border-gray-300 rounded-md cart-item-quantity text-center">
+                    </td>
+                    <td class="py-3 px-4 text-right">৳${parseFloat(item.price).toFixed(2)}</td>
+                    <td class="py-3 px-4 text-right">৳${(parseFloat(item.price) * item.quantity).toFixed(2)}</td>
+                    <td class="py-3 px-4 text-center">
+                        <button data-cart-item-index="${index}" class="text-red-500 hover:text-red-700 remove-from-cart-btn font-semibold">অপসারণ</button>
+                    </td>
+                `;
+                cartItemsDiv.appendChild(itemRow);
+                total += parseFloat(item.price) * item.quantity;
+            });
+            cartTotalSpan.textContent = total.toFixed(2);
+            placeOrderButton.disabled = false;
+            placeOrderButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            document.querySelectorAll('.cart-item-quantity').forEach(input => {
+                input.removeEventListener('change', handleCartQuantityChange);
+                input.addEventListener('change', handleCartQuantityChange);
+            });
+            document.querySelectorAll('.remove-from-cart-btn').forEach(button => {
+                button.removeEventListener('click', handleRemoveFromCart);
+                button.addEventListener('click', handleRemoveFromCart);
+            });
+        }
+        function handleCartQuantityChange(e) { updateCartItemQuantity(e.target.dataset.cartItemId, parseInt(e.target.value)); }
+        function handleRemoveFromCart(e) { removeFromCart(parseInt(e.target.dataset.cartItemIndex)); }
+        function updateCartItemQuantity(itemId, newQuantity) {
+            const item = cart.find(i => i.id === itemId);
+            if (item && newQuantity > 0) item.quantity = newQuantity;
+            else if (item && newQuantity <= 0) cart = cart.filter(i => i.id !== itemId);
+            renderCart();
+        }
+        function removeFromCart(itemIndex) {
+            if (itemIndex >= 0 && itemIndex < cart.length) {
+                const removedItemName = cart[itemIndex].name;
+                cart.splice(itemIndex, 1);
+                renderCart();
+                showMessage(`${removedItemName} কার্ট থেকে সরানো হয়েছে।`, 'info', 1500);
+            }
+        }
+
+        // --- Order Placement ---
+        placeOrderButton.addEventListener('click', async () => {
+            if (cart.length === 0 || !currentPasscode || !auth.currentUser) {
+                showMessage('অর্ডার করার জন্য কার্টে পণ্য যোগ করুন এবং পাসকোড দিয়ে লগইন করুন।', 'error');
+                return;
+            }
+            loadingIndicator.classList.remove('hidden');
+            placeOrderButton.disabled = true;
+            placeOrderButton.classList.add('opacity-50');
+            const orderItems = cart.map(item => ({ productId: item.id, productName: item.name, quantity: item.quantity, price: parseFloat(item.price) }));
+            const totalAmount = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
+            let orderSector; 
+            if (currentPasscode === 'Khamer1') orderSector = 'কিচেন সেক্টর';
+            else if (currentPasscode === 'Khamer2') orderSector = 'পুরুষ সেক্টর';
+            else if (currentPasscode === 'Khamer3') orderSector = 'ফ্যামিলি সেক্টর';
+            else { 
+                showMessage('অর্ডারের জন্য সেক্টর নির্ধারণ করা যায়নি।', 'error');
+                loadingIndicator.classList.add('hidden');
+                placeOrderButton.disabled = false; placeOrderButton.classList.remove('opacity-50');
+                return;
+            }
+            const orderData = { userId: auth.currentUser.uid, passcodeUsed: currentPasscode, sector: orderSector, items: orderItems, totalAmount: totalAmount, status: 'পেন্ডিং', timestamp: serverTimestamp() };
+            try {
+                const ordersRef = collection(db, `artifacts/${appId}/public/data/orders`);
+                const docRef = await addDoc(ordersRef, orderData);
+                orderSuccessMessage.textContent = `আপনার অর্ডার (ID: ${docRef.id.substring(0,8)}...) সফলভাবে প্লেস করা হয়েছে! মোট বিল: ৳${totalAmount.toFixed(2)}`;
+                orderSuccessModal.classList.remove('hidden');
+                cart = []; renderCart();
+            } catch (error) {
+                console.error("Error placing order: ", error);
+                showMessage(`অর্ডার করতে সমস্যা হচ্ছে: ${error.message}`, 'error');
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        });
+        closeOrderSuccessModalButton.addEventListener('click', () => {
+            orderSuccessModal.classList.add('hidden');
+            placeOrderButton.disabled = cart.length === 0; 
+             if(cart.length > 0) placeOrderButton.classList.remove('opacity-50');
+        });
+
+        // --- Admin Panel: Order Management ---
+        adminSectorFilter.addEventListener('change', fetchAdminOrders);
+        function fetchAdminOrders() {
+            if (!isAdmin || !auth.currentUser) return;
+            adminLoadingIndicator.classList.remove('hidden');
+            adminOrdersDiv.innerHTML = '<p class="text-center text-gray-500">অর্ডার লোড হচ্ছে...</p>';
+            if (unsubscribeOrders) unsubscribeOrders();
+            let ordersQuery = collection(db, `artifacts/${appId}/public/data/orders`);
+            const selectedSector = adminSectorFilter.value;
+            if (selectedSector) ordersQuery = query(ordersQuery, where("sector", "==", selectedSector));
+            unsubscribeOrders = onSnapshot(ordersQuery, (snapshot) => {
+                adminLoadingIndicator.classList.add('hidden');
+                const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                orders.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+                renderAdminOrders(orders);
+            }, (error) => {
+                console.error("Error fetching admin orders: ", error);
+                adminOrdersDiv.innerHTML = `<p class="text-red-500 text-center">অর্ডার আনতে সমস্যা হচ্ছে: ${error.message}</p>`;
+                adminLoadingIndicator.classList.add('hidden');
+            });
+        }
+        function renderAdminOrders(orders) {
+            adminOrdersDiv.innerHTML = '';
+            if (orders.length === 0) {
+                adminOrdersDiv.innerHTML = '<p class="text-center text-gray-500">কোনো অর্ডার পাওয়া যায়নি।</p>';
+                return;
+            }
+            const table = document.createElement('table');
+            table.className = 'min-w-full bg-white shadow-md rounded-lg overflow-hidden';
+            table.innerHTML = `
+                <thead class="bg-gray-200 text-gray-700">
+                    <tr>
+                        <th class="py-3 px-4 text-left">অর্ডার আইডি</th> <th class="py-3 px-4 text-left">সেক্টর</th>
+                        <th class="py-3 px-4 text-left">পণ্যসমূহ</th> <th class="py-3 px-4 text-right">মোট টাকা</th>
+                        <th class="py-3 px-4 text-left">সময়</th> <th class="py-3 px-4 text-left">স্ট্যাটাস</th>
+                        <th class="py-3 px-4 text-left">অ্যাকশন</th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-700"></tbody>`;
+            const tbody = table.querySelector('tbody');
+            orders.forEach(order => {
+                const row = tbody.insertRow();
+                row.className = 'border-b border-gray-200 hover:bg-gray-100';
+                const itemsString = order.items.map(item => `${item.productName} (x${item.quantity})`).join(',<br>');
+                const orderTimestamp = order.timestamp ? new Date(order.timestamp.seconds * 1000).toLocaleString('bn-BD') : 'N/A';
+                row.innerHTML = `
+                    <td class="py-3 px-4">${order.id.substring(0, 8)}...</td> <td class="py-3 px-4">${order.sector}</td>
+                    <td class="py-3 px-4 text-xs">${itemsString}</td> <td class="py-3 px-4 text-right">৳${parseFloat(order.totalAmount).toFixed(2)}</td>
+                    <td class="py-3 px-4 text-sm">${orderTimestamp}</td>
+                    <td class="py-3 px-4"><span class="px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}">${order.status}</span></td>
+                    <td class="py-3 px-4">
+                        <select data-order-id="${order.id}" class="p-1 border border-gray-300 rounded-md status-change-select text-sm">
+                            <option value="পেন্ডিং" ${order.status === 'পেন্ডিং' ? 'selected' : ''}>পেন্ডিং</option>
+                            <option value="প্রসেসিং" ${order.status === 'প্রসেসিং' ? 'selected' : ''}>প্রসেসিং</option>
+                            <option value="সম্পন্ন" ${order.status === 'সম্পন্ন' ? 'selected' : ''}>সম্পন্ন</option>
+                            <option value="বাতিল" ${order.status === 'বাতিল' ? 'selected' : ''}>বাতিল</option>
+                        </select>
+                    </td>`;
+            });
+            adminOrdersDiv.appendChild(table);
+            document.querySelectorAll('.status-change-select').forEach(select => {
+                select.removeEventListener('change', handleStatusChange);
+                select.addEventListener('change', handleStatusChange);
+            });
+        }
+        async function handleStatusChange(e) { await updateOrderStatus(e.target.dataset.orderId, e.target.value); }
+        function getStatusColor(status) {
+            switch (status) {
+                case 'পেন্ডিং': return 'bg-yellow-200 text-yellow-800'; case 'প্রসেসিং': return 'bg-blue-200 text-blue-800';
+                case 'সম্পন্ন': return 'bg-green-200 text-green-800'; case 'বাতিল': return 'bg-red-200 text-red-800';
+                default: return 'bg-gray-200 text-gray-800';
+            }
+        }
+        async function updateOrderStatus(orderId, newStatus) {
+            loadingIndicator.classList.remove('hidden'); 
+            const orderRef = doc(db, `artifacts/${appId}/public/data/orders`, orderId);
+            try {
+                await updateDoc(orderRef, { status: newStatus });
+                showMessage(`অর্ডার ${orderId.substring(0,8)}... স্ট্যাটাস "${newStatus}" করা হয়েছে।`, 'success');
+            } catch (error) {
+                console.error("Error updating order status: ", error);
+                showMessage(`অর্ডার স্ট্যাটাস আপডেট করতে সমস্যা: ${error.message}`, 'error');
+            } finally {
+                loadingIndicator.classList.add('hidden'); 
+            }
+        }
+
+        // --- Admin Panel: Add Product ---
+        addProductForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!isAdmin) { showMessage('পণ্য যোগ করার অনুমতি নেই।', 'error'); return; }
+            const name = productNameInput.value.trim();
+            const description = productDescriptionInput.value.trim();
+            const price = parseFloat(productPriceInput.value);
+            const category = productCategoryInput.value;
+            const imageUrl = productImageUrlInput.value.trim();
+            if (!name || !price || !category) { showMessage('পণ্যের নাম, মূল্য এবং ক্যাটাগরি আবশ্যক।', 'error'); return; }
+            if (isNaN(price) || price <= 0) { showMessage('সঠিক মূল্য লিখুন।', 'error'); return; }
+            addProductButton.disabled = true; addProductLoadingIndicator.classList.remove('hidden');
+            const newProduct = { name, description, price, category, imageUrl: imageUrl || `https://placehold.co/300x200/CCCCCC/000000?text=${encodeURIComponent(name)}`, addedBy: auth.currentUser.uid, createdAt: serverTimestamp() };
+            try {
+                const productsRef = collection(db, `artifacts/${appId}/public/data/products`);
+                await addDoc(productsRef, newProduct);
+                showMessage(`পণ্য "${name}" সফলভাবে যোগ করা হয়েছে।`, 'success');
+                addProductForm.reset(); 
+            } catch (error) {
+                console.error("Error adding product:", error);
+                showMessage(`পণ্য যোগ করতে সমস্যা: ${error.message}`, 'error');
+            } finally {
+                addProductButton.disabled = false; addProductLoadingIndicator.classList.add('hidden');
+            }
+        });
+
+        // --- Utility Functions ---
+        let messageTimeout;
+        function showMessage(msg, type = 'info', duration = 3000) {
+            messageDiv.textContent = msg;
+            messageDiv.className = 'fixed bottom-5 right-5 p-4 rounded-lg shadow-xl text-white text-sm z-[100] cursor-pointer transition-opacity duration-300'; 
+            if (type === 'success') messageDiv.classList.add('bg-green-500');
+            else if (type === 'error') messageDiv.classList.add('bg-red-500');
+            else if (type === 'info') messageDiv.classList.add('bg-blue-500');
+            else messageDiv.classList.add('bg-gray-700');
+            messageDiv.classList.remove('hidden', 'opacity-0');
+            messageDiv.classList.add('opacity-100');
+            clearTimeout(messageTimeout); 
+            if (duration !== 0) { 
+                messageTimeout = setTimeout(() => {
+                    messageDiv.classList.remove('opacity-100');
+                    messageDiv.classList.add('opacity-0');
+                    setTimeout(() => messageDiv.classList.add('hidden'), 300); 
+                }, duration);
+            }
+        }
+        messageDiv.addEventListener('click', () => {
+            messageDiv.classList.remove('opacity-100');
+            messageDiv.classList.add('opacity-0');
+            setTimeout(() => messageDiv.classList.add('hidden'), 300);
+            clearTimeout(messageTimeout);
+        });
     </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance:textfield; }
+        .modal { transition: opacity 0.25s ease; }
+        .modal-content { transition: transform 0.25s ease; }
+        .hidden { display: none !important; } 
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
+
+    <header class="bg-gradient-to-r from-sky-600 to-cyan-700 text-white p-5 shadow-lg sticky top-0 z-40">
+        <div class="container mx-auto flex flex-wrap justify-between items-center">
+            <h1 class="text-2xl md:text-3xl font-bold">গুদাম ম্যানেজমেন্ট সিস্টেম</h1>
+            <div class="flex items-center space-x-4 mt-2 md:mt-0">
+                <span id="currentViewSpan" class="text-sm md:text-base">লোড হচ্ছে...</span>
+                <button id="logoutButton" class="hidden bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150 text-sm">লগ আউট</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-6 flex-grow">
+        <section id="loginForms" class="max-w-lg mx-auto mt-8 space-y-8">
+            <div id="userPasscodeLogin" class="bg-white p-6 md:p-8 rounded-xl shadow-2xl">
+                <h2 class="text-xl md:text-2xl font-semibold text-center text-gray-700 mb-6">ব্যবহারকারী লগইন (পাসকোড)</h2>
+                <div class="mb-4">
+                    <label for="passcodeEntry" class="block text-sm font-medium text-gray-600 mb-1">পাসকোড (Khamer1, Khamer2, Khamer3):</label>
+                    <input type="password" id="passcodeEntry" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150" placeholder="Khamer পাসকোড">
+                </div>
+                <button id="userLoginButton" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out transform hover:scale-105">ব্যবহারকারী হিসেবে প্রবেশ</button>
+            </div>
+            <div id="adminEmailLogin" class="bg-white p-6 md:p-8 rounded-xl shadow-2xl">
+                <h2 class="text-xl md:text-2xl font-semibold text-center text-gray-700 mb-6">অ্যাডমিন লগইন (ইমেইল)</h2>
+                <div class="mb-4">
+                    <label for="adminEmailEntry" class="block text-sm font-medium text-gray-600 mb-1">অ্যাডমিন ইমেইল:</label>
+                    <input type="email" id="adminEmailEntry" autocomplete="email" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-150" placeholder="admin@example.com">
+                </div>
+                <div class="mb-6">
+                    <label for="adminPasswordEntry" class="block text-sm font-medium text-gray-600 mb-1">অ্যাডমিন পাসওয়ার্ড:</label>
+                    <input type="password" id="adminPasswordEntry" autocomplete="current-password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-150" placeholder="পাসওয়ার্ড">
+                </div>
+                <button id="adminLoginButton" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out transform hover:scale-105">অ্যাডমিন হিসেবে প্রবেশ</button>
+            </div>
+        </section>
+
+        <section id="userSection" class="hidden">
+            <div class="bg-white p-4 md:p-6 rounded-lg shadow-xl mb-8">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-2">পণ্য তালিকা</h2>
+                <div id="productLoadingIndicator" class="hidden text-center py-4">
+                    <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <p class="text-gray-500 mt-2">পণ্য লোড হচ্ছে...</p>
+                </div>
+                <div id="productList" class="custom-scrollbar"></div>
+            </div>
+            <div class="bg-white p-4 md:p-6 rounded-lg shadow-xl">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6 border-b-2 border-green-500 pb-2">শপিং কার্ট</h2>
+                <div class="overflow-x-auto custom-scrollbar mb-6">
+                    <table class="min-w-full bg-white"><thead class="bg-gray-100"><tr>
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-600 uppercase">পণ্য</th>
+                        <th class="py-3 px-4 text-center text-sm font-semibold text-gray-600 uppercase">পরিমাণ</th>
+                        <th class="py-3 px-4 text-right text-sm font-semibold text-gray-600 uppercase">একক মূল্য</th>
+                        <th class="py-3 px-4 text-right text-sm font-semibold text-gray-600 uppercase">মোট</th>
+                        <th class="py-3 px-4 text-center text-sm font-semibold text-gray-600 uppercase">অ্যাকশন</th>
+                    </tr></thead><tbody id="cartItems"></tbody></table>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-between items-center border-t pt-4">
+                    <p class="text-xl font-semibold text-gray-700 mb-4 sm:mb-0">সর্বমোট: <span class="text-green-600">৳<span id="cartTotal">0.00</span></span></p>
+                    <button id="placeOrderButton" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition duration-150 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" disabled>অর্ডার করুন</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="adminSection" class="hidden space-y-8">
+            <div class="bg-white p-4 md:p-6 rounded-lg shadow-xl">
+                <h3 class="text-xl md:text-2xl font-bold text-gray-800 mb-6 border-b-2 border-purple-500 pb-2">নতুন পণ্য যোগ করুন</h3>
+                <form id="addProductForm" class="space-y-4">
+                    <div><label for="productName" class="block text-sm font-medium text-gray-700">পণ্যের নাম:</label><input type="text" id="productName" name="productName" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"></div>
+                    <div><label for="productDescription" class="block text-sm font-medium text-gray-700">পণ্যের বিবরণ (ঐচ্ছিক):</label><textarea id="productDescription" name="productDescription" rows="3" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"></textarea></div>
+                    <div><label for="productPrice" class="block text-sm font-medium text-gray-700">মূল্য (৳):</label><input type="number" id="productPrice" name="productPrice" required min="0.01" step="0.01" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"></div>
+                    <div><label for="productCategory" class="block text-sm font-medium text-gray-700">ক্যাটাগরি:</label><select id="productCategory" name="productCategory" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"><option value="কিচেন ক্যাটাগরি">কিচেন ক্যাটাগরি</option><option value="রেস্টুরেন্ট ক্যাটাগরি">রেস্টুরেন্ট ক্যাটাগরি</option></select></div>
+                    <div><label for="productImageUrl" class="block text-sm font-medium text-gray-700">ছবির URL (ঐচ্ছিক):</label><input type="url" id="productImageUrl" name="productImageUrl" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500" placeholder="https://example.com/image.jpg"></div>
+                    <button type="submit" id="addProductButton" class="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-md transition duration-150 flex items-center justify-center">
+                        <span id="addProductLoadingIndicator" class="hidden mr-2"><svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></span>
+                        পণ্য যোগ করুন
+                    </button>
+                </form>
+            </div>
+            <div class="bg-white p-4 md:p-6 rounded-lg shadow-xl">
+                <h3 class="text-xl md:text-2xl font-bold text-gray-800 mb-2 border-b-2 border-teal-500 pb-2">অর্ডার ম্যানেজমেন্ট</h3>
+                <p class="text-gray-600 mb-6">এখানে সকল অর্ডার এবং তাদের স্ট্যাটাস দেখা যাবে।</p>
+                <div class="mb-4">
+                    <label for="adminSectorFilter" class="block text-sm font-medium text-gray-700">সেক্টর অনুযায়ী ফিল্টার করুন:</label>
+                    <select id="adminSectorFilter" class="mt-1 block w-full sm:w-1/3 p-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <option value="">সকল সেক্টর</option><option value="কিচেন সেক্টর">কিচেন সেক্টর</option><option value="পুরুষ সেক্টর">পুরুষ সেক্টর</option><option value="ফ্যামিলি সেক্টর">ফ্যামিলি সেক্টর</option>
+                    </select>
+                </div>
+                 <div id="adminLoadingIndicator" class="hidden text-center py-4">
+                    <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <p class="text-gray-500 mt-2">অর্ডার লোড হচ্ছে...</p>
+                </div>
+                <div id="adminOrders" class="overflow-x-auto custom-scrollbar"></div>
+            </div>
+        </section>
+    </main>
+
+    <div id="loadingIndicator" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-[110]">
+        <svg class="animate-spin h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+    </div>
+    <div id="messageDiv" class="hidden fixed bottom-5 right-5 p-4 rounded-lg shadow-xl text-white text-sm z-[100] cursor-pointer opacity-0"></div>
+    <div id="orderSuccessModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full modal z-[90]">
+        <div class="relative top-1/4 mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white modal-content">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">অর্ডার সফল!</h3>
+                <div class="mt-2 px-7 py-3"><p id="orderSuccessMessage" class="text-sm text-gray-500"></p></div>
+                <div class="items-center px-4 py-3"><button id="closeOrderSuccessModalButton" class="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-300">ঠিক আছে</button></div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center p-4 text-gray-600 text-sm mt-auto border-t border-gray-200 bg-gray-50">
+        &copy; ২০২৫ গুদাম ম্যানেজমেন্ট সিস্টেম। সর্বস্বত্ব সংরক্ষিত।
+    </footer>
+
 </body>
 </html>
